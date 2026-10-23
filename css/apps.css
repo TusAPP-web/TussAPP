@@ -1,0 +1,95 @@
+/* ==================== PÁGINAS DE APLICACIONES ==================== */
+
+.app-page-hero{
+  padding:85px 0 70px;
+  display:grid;
+  grid-template-columns:minmax(0,1.1fr) minmax(280px,.9fr);
+  gap:70px;
+  align-items:center;
+}
+
+.app-page-copy h1{margin:18px 0 22px;}
+
+.app-page-copy .lead{
+  max-width:650px;
+  font-size:17px;
+  line-height:1.75;
+}
+
+.app-visual{
+  min-height:330px;
+  border-radius:36px;
+  display:grid;
+  place-items:center;
+  box-shadow:0 35px 80px -45px rgba(10,14,31,.55);
+}
+
+.app-visual-icon{
+  width:150px;
+  height:150px;
+  border-radius:38px;
+  background:rgba(255,255,255,.12);
+  display:grid;
+  place-items:center;
+}
+
+.app-visual-icon img{width:88px;height:88px;}
+
+.app-page-section{
+  border-top:1px solid var(--line);
+  padding:80px 0;
+}
+
+.app-page-section h2{margin-top:14px;}
+
+.feature-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:20px;
+  margin-top:42px;
+}
+
+.feature-card{
+  background:var(--white);
+  border:1px solid var(--line);
+  border-radius:22px;
+  padding:26px;
+}
+
+.feature-number{
+  color:var(--mist);
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+}
+
+.feature-card h3{
+  font-size:19px;
+  margin:15px 0 9px;
+}
+
+.feature-card p{
+  font-size:13px;
+  line-height:1.7;
+}
+
+.app-back{
+  display:inline-flex;
+  margin-top:25px;
+  color:var(--electric);
+  font-size:13px;
+  font-weight:700;
+}
+
+@media(max-width:900px){
+  .app-page-hero{grid-template-columns:1fr;gap:40px;}
+  .feature-grid{grid-template-columns:1fr 1fr;}
+}
+
+@media(max-width:640px){
+  .app-page-hero{padding:55px 0 50px;}
+  .app-page-copy .lead{font-size:15px;}
+  .app-visual{min-height:270px;border-radius:28px;}
+  .app-visual-icon{width:115px;height:115px;border-radius:28px;}
+  .app-visual-icon img{width:68px;height:68px;}
+  .feature-grid{grid-template-columns:1fr;}
+}
