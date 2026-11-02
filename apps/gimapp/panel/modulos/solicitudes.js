@@ -1,0 +1,1 @@
+export const DEMO_REQUESTS=[{id:'r1',name:'Lucía Fernández',phone:'11 5555 0142',email:'lucia@example.test',days:'Lunes y miércoles · 18:00',date:'Hoy',status:'Pendiente'},{id:'r2',name:'Mateo Suárez',phone:'11 5555 0187',email:'mateo@example.test',days:'Martes y jueves · 19:00',date:'Ayer',status:'Pendiente'}];

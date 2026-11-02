@@ -1,0 +1,1 @@
+export function validateException({start,end,ranges}){if(start&&end&&start>end)return 'La fecha final no puede ser anterior a la inicial.';for(const [a,b] of ranges){if(!a||!b||a>=b)return 'Revisá el horario: el inicio debe ser anterior al final.';}return '';}
