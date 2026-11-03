@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- GimAPP index.html · actualización 0.4 · 3 de noviembre de 2026 -->
 <html lang="es">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -9,12 +10,23 @@
   <main class="login-card">
     <div class="brand-mark">G</div><p class="eyebrow">GESTIÓN PARA GIMNASIOS</p>
     <h1>Bienvenido a <span>GimAPP</span></h1><p class="muted">Ingresá al espacio de administración de tu gimnasio.</p>
-    <form id="login-form"><label>Correo electrónico<input type="email" name="email" autocomplete="username" required placeholder="vos@gimnasio.com"></label>
-      <label>Contraseña<input type="password" name="password" autocomplete="current-password" required placeholder="Tu contraseña"></label>
-      <button class="button primary full" type="submit">Ingresar</button></form>
+    <section id="login-view">
+      <form id="login-form"><label>Correo electrónico<input type="email" name="email" autocomplete="username" required placeholder="vos@gimnasio.com"></label>
+        <label>Contraseña<input id="login-password" type="password" name="password" autocomplete="current-password" required placeholder="Tu contraseña"><button class="text-link" type="button" data-toggle-password="login-password" aria-pressed="false">Mostrar contraseña</button></label>
+        <button class="button primary full" type="submit">Ingresar</button>
+        <button class="button full" type="button" id="login-google">Continuar con Google</button></form>
+      <button class="text-link" type="button" id="password-reset">Olvidé mi contraseña</button><br>
+      <button class="text-link" type="button" id="show-owner-registration">Crear cuenta para mi gimnasio →</button>
+    </section>
+    <section id="owner-registration-view" hidden>
+      <form id="owner-registration-form"><label>Nombre del gimnasio<input name="gymName" required minlength="2" autocomplete="organization" placeholder="Nombre comercial"></label>
+        <label>Nombre de la persona responsable<input name="name" required minlength="2" autocomplete="name" placeholder="Nombre y apellido"></label>
+        <label>Correo electrónico<input type="email" name="email" autocomplete="email" required placeholder="vos@gimnasio.com"></label>
+        <label>Contraseña<input id="registration-password" type="password" name="password" autocomplete="new-password" required minlength="8" placeholder="Mínimo 8 caracteres"><button class="text-link" type="button" data-toggle-password="registration-password" aria-pressed="false">Mostrar contraseña</button></label>
+        <button class="button primary full" type="submit">Crear gimnasio</button>
+        <button class="button full" type="button" id="register-google">Crear con Google</button></form>
+      <button class="text-link" type="button" id="show-login">Ya tengo una cuenta →</button>
+    </section>
     <p id="login-message" class="form-message" aria-live="polite"></p>
-    <p class="small muted">Acceso de demostración. La autenticación real requiere definir y configurar un servicio.</p>
-    <a href="panel/panelindex.html" class="text-link">Abrir panel de demostración →</a><br>
-    <a href="catalogo/index.html" class="text-link">Ir al catálogo de clientes →</a>
   </main><script type="module" src="panel/login.js"></script>
 </body></html>

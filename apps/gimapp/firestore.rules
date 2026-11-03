@@ -1,0 +1,88 @@
+// GimAPP · versión 0.2 · 3 de noviembre de 2026.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function teamRecord(gymId) { return get(/databases/$(database)/documents/gyms/$(gymId)/team/$(request.auth.uid)); }
+    function activeMember(gymId) { return signedIn() && exists(/databases/$(database)/documents/gyms/$(gymId)/team/$(request.auth.uid)) && teamRecord(gymId).data.active == true; }
+    function administrator(gymId) { return activeMember(gymId) && teamRecord(gymId).data.role in ['owner', 'complete']; }
+    function attendanceManager(gymId) { return activeMember(gymId) && teamRecord(gymId).data.role in ['owner', 'complete', 'intermediate']; }
+    function clientIsSelf() { return signedIn() && resource.data.clientUid == request.auth.uid; }
+    function createsOwnClientData() { return signedIn() && request.resource.data.clientUid == request.auth.uid; }
+
+    match /users/{userUid} {
+      allow get: if signedIn() && request.auth.uid == userUid;
+      allow create: if signedIn()
+        && request.auth.uid == userUid
+        && request.resource.data.accountType == 'staff'
+        && request.resource.data.keys().hasOnly(['accountType', 'currentGymId', 'createdAt', 'updatedAt'])
+        && request.resource.data.currentGymId is string
+        && getAfter(/databases/$(database)/documents/gyms/$(request.resource.data.currentGymId)).data.ownerUid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/gyms/$(request.resource.data.currentGymId)/team/$(request.auth.uid)).data.uid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/gyms/$(request.resource.data.currentGymId)/team/$(request.auth.uid)).data.role == 'owner'
+        && getAfter(/databases/$(database)/documents/gyms/$(request.resource.data.currentGymId)/team/$(request.auth.uid)).data.active == true;
+      allow update: if signedIn() && request.auth.uid == userUid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['updatedAt', 'lastSignedInAt']);
+      allow delete: if false;
+    }
+    match /publicCatalog/{gymId} {
+      allow get: if resource.data.published == true || administrator(gymId);
+      allow list: if false;
+      allow create, update, delete: if administrator(gymId);
+    }
+    match /gyms/{gymId} {
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.status == 'active'
+        && request.resource.data.plan == 'free'
+        && request.resource.data.keys().hasOnly(['name', 'ownerUid', 'plan', 'status', 'createdAt', 'updatedAt']);
+      allow read: if activeMember(gymId);
+      allow update: if administrator(gymId)
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.plan == resource.data.plan
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'absenceNoticeHours', 'updatedAt']);
+      allow delete: if false;
+      match /team/{userUid} {
+        allow get, list: if signedIn() && (resource.data.uid == request.auth.uid || administrator(gymId));
+        allow create: if signedIn()
+          && request.resource.data.uid == userUid
+          && request.resource.data.keys().hasOnly(['uid', 'name', 'email', 'role', 'active', 'createdAt'])
+          && request.resource.data.role in ['owner', 'complete', 'intermediate', 'basic']
+          && request.resource.data.active is bool
+          && (administrator(gymId) || (userUid == request.auth.uid
+            && request.resource.data.role == 'owner'
+            && request.resource.data.active == true
+            && getAfter(/databases/$(database)/documents/gyms/$(gymId)).data.ownerUid == request.auth.uid));
+        allow update, delete: if administrator(gymId);
+      }
+      match /clients/{clientUid} {
+        allow get: if clientIsSelf() || attendanceManager(gymId);
+        allow list: if attendanceManager(gymId);
+        allow create, update: if administrator(gymId);
+        allow delete: if false;
+      }
+      match /requests/{requestId} {
+        allow create: if createsOwnClientData() && request.resource.data.status == 'pending';
+        allow get, list: if clientIsSelf() || attendanceManager(gymId);
+        allow update: if administrator(gymId);
+        allow delete: if false;
+      }
+      match /waitlist/{entryId} {
+        allow create: if createsOwnClientData() && request.resource.data.status == 'pending';
+        allow get, list: if clientIsSelf() || attendanceManager(gymId);
+        allow update: if administrator(gymId);
+        allow delete: if false;
+      }
+      match /attendance/{attendanceId} {
+        allow get, list: if clientIsSelf() || attendanceManager(gymId) || (activeMember(gymId) && resource.data.trainerUid == request.auth.uid);
+        allow create: if attendanceManager(gymId) || (activeMember(gymId) && request.resource.data.trainerUid == request.auth.uid);
+        allow update: if attendanceManager(gymId) || (activeMember(gymId) && resource.data.trainerUid == request.auth.uid && request.resource.data.trainerUid == request.auth.uid);
+        allow delete: if administrator(gymId);
+      }
+      match /cash/{entryId} { allow read, create, update: if administrator(gymId); allow delete: if false; }
+      match /weeklySchedule/{entryId} { allow read: if activeMember(gymId); allow write: if administrator(gymId); }
+      match /exceptions/{entryId} { allow read: if activeMember(gymId); allow write: if administrator(gymId); }
+      match /audit/{entryId} { allow read: if administrator(gymId); allow create: if activeMember(gymId); allow update, delete: if false; }
+    }
+  }
+}
