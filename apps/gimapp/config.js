@@ -18,7 +18,7 @@ export const APP_CONFIG = Object.freeze({
   firebase: FIREBASE_WEB_CONFIG,
   firebaseConfigured,
   // Se activan al publicar reglas verificadas y la política definitiva.
-  ownerRegistrationEnabled: false,
+  ownerRegistrationEnabled: true,
   clientRegistrationEnabled: false,
   privacyPolicyVersion: '',
 });
