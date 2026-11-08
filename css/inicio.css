@@ -54,3 +54,7 @@
 @media(max-width:900px){.hero-art-turnapp{min-height:0;padding:8px 0 20px}.turnapp-gallery{padding-block:46px 52px}}
 @media(max-width:640px){.turnapp-gallery{gap:14px;padding:38px calc((100% - 270px)/2) 44px;scroll-padding-inline:calc((100% - 270px)/2)}.turnapp-slide{flex-basis:270px;width:270px;height:320px;border-radius:19px}.turnapp-slide.is-active{transform:scale(1.045)}.hero-preview-caption{font-size:8px;margin-right:2%}}
 @media(prefers-reduced-motion:reduce){.turnapp-slide{transition:none}.turnapp-gallery{scroll-behavior:auto}}
+
+
+/* La captura original de portada contiene el calendario en el panel izquierdo. */
+.turnapp-slide:last-child img{object-fit:none;object-position:left top;padding:0}
