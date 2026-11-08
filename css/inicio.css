@@ -40,18 +40,20 @@
 @media(prefers-reduced-motion:reduce){.floating-app{animation:none}html{scroll-behavior:auto}*,*::before,*::after{transition-duration:.01ms!important}}
 
 
-/* Galería de capturas de TurnAPP: tarjetas ampliadas con desplazamiento continuo */
-.hero-art-turnapp{min-height:500px;width:min(100%,760px);display:flex;flex-direction:column;justify-content:center;align-items:stretch;gap:12px;overflow:hidden}
-.turnapp-gallery-window{width:100%;overflow:hidden;padding:24px 0 30px}
-.turnapp-gallery-track{display:flex;align-items:center;gap:24px;width:max-content;animation:turnapp-gallery-right 38s linear infinite}
-.turnapp-gallery-window:hover .turnapp-gallery-track{animation-play-state:paused}
-.turnapp-shot{flex:0 0 440px;width:440px;height:390px;border-radius:22px;background-image:url('../assets/imagenes/turnapp-portada.webp?v=1');background-repeat:no-repeat;background-size:760px 650px;background-color:#f5f0e6;box-shadow:0 18px 38px rgba(10,14,31,.18);border:1px solid rgba(20,30,25,.12)}
-.shot-calendar{background-position:34px -23px}
-.shot-catalog{background-position:-320px 78px}
-.shot-booking{background-position:-350px -250px}
-.shot-reserved{background-position:15px -345px}
-@keyframes turnapp-gallery-right{from{transform:translateX(-50%)}to{transform:translateX(0)}}
+
+/* Carrusel tipo coverflow para las vistas de TurnAPP */
+.hero-art-turnapp{min-height:500px;width:100%;min-width:0;display:flex;flex-direction:column;justify-content:center;align-items:stretch;gap:10px;overflow:hidden}
+.turnapp-carousel{display:flex;align-items:center;gap:18px;width:100%;overflow-x:auto;overflow-y:hidden;padding:42px max(24px,calc((100% - 350px)/2)) 48px;scroll-snap-type:x mandatory;scroll-padding-inline:calc((100% - 350px)/2);overscroll-behavior-x:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.turnapp-carousel::-webkit-scrollbar{display:none}
+.turnapp-slide{position:relative;flex:0 0 350px;width:350px;height:390px;overflow:hidden;border-radius:22px;background:#f5f0e6;box-shadow:0 16px 38px rgba(10,14,31,.15);border:1px solid rgba(20,30,25,.12);scroll-snap-align:center;transform:scale(.84);opacity:.72;transition:transform .45s ease,opacity .45s ease,box-shadow .45s ease}
+.turnapp-slide:focus-within,.turnapp-slide:hover{transform:scale(1.06);opacity:1;box-shadow:0 24px 48px rgba(10,14,31,.22)}
+.turnapp-slide img{position:absolute;display:block;max-width:none;width:720px;height:585px;object-fit:fill}
+.turnapp-slide span{position:absolute;left:0;right:0;bottom:0;padding:14px 16px;background:rgba(255,255,255,.94);font-size:13px;font-weight:700;color:#15233b}
+.slide-calendar img{left:0;top:-70px}
+.slide-catalog img{left:-360px;top:0}
+.slide-booking img{left:-360px;top:-230px}
+@supports(animation-timeline:view(inline)){.turnapp-slide{animation:turnapp-focus linear both;animation-timeline:view(inline);animation-range:entry 0% exit 100%}@keyframes turnapp-focus{0%,100%{transform:scale(.82);opacity:.65}45%,55%{transform:scale(1.08);opacity:1}}}
 .hero-preview-caption{align-self:flex-end;margin-right:4%;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;color:var(--mist);white-space:nowrap}
-@media(max-width:900px){.hero-art-turnapp{min-height:0;width:100%;padding:8px 0 22px}.turnapp-shot{flex-basis:390px;width:390px;height:350px;background-size:760px 650px;transform:scale(.94);transform-origin:center}}
-@media(max-width:640px){.hero-art-turnapp{width:100%;padding:0 0 8px}.turnapp-gallery-window{padding:12px 0 20px}.turnapp-gallery-track{gap:14px;animation-duration:32s}.turnapp-shot{flex-basis:320px;width:320px;height:310px;border-radius:16px;transform:scale(.9)}.hero-preview-caption{font-size:8px;margin-right:2%}}
-@media(prefers-reduced-motion:reduce){.turnapp-gallery-track{animation:none;transform:none}.turnapp-gallery-window{overflow-x:auto;scrollbar-width:thin}}
+@media(max-width:900px){.hero-art-turnapp{min-height:0;padding:10px 0 20px}.turnapp-carousel{padding-block:34px 38px}}
+@media(max-width:640px){.turnapp-carousel{gap:12px;padding:28px calc((100% - 285px)/2) 34px;scroll-padding-inline:calc((100% - 285px)/2)}.turnapp-slide{flex-basis:285px;width:285px;height:330px;border-radius:17px}.turnapp-slide img{width:680px;height:552px}.slide-calendar img{left:0;top:-65px}.slide-catalog img{left:-340px;top:0}.slide-booking img{left:-340px;top:-217px}.hero-preview-caption{font-size:8px;margin-right:2%}}
+@media(prefers-reduced-motion:reduce){.turnapp-slide{animation:none!important;transition:none}.turnapp-carousel{scroll-behavior:auto}}
