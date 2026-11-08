@@ -41,19 +41,16 @@
 
 
 
-/* Carrusel tipo coverflow para las vistas de TurnAPP */
+/* Galería horizontal de capturas independientes de TurnAPP */
 .hero-art-turnapp{min-height:500px;width:100%;min-width:0;display:flex;flex-direction:column;justify-content:center;align-items:stretch;gap:10px;overflow:hidden}
-.turnapp-carousel{display:flex;align-items:center;gap:18px;width:100%;overflow-x:auto;overflow-y:hidden;padding:42px max(24px,calc((100% - 350px)/2)) 48px;scroll-snap-type:x mandatory;scroll-padding-inline:calc((100% - 350px)/2);overscroll-behavior-x:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-.turnapp-carousel::-webkit-scrollbar{display:none}
-.turnapp-slide{position:relative;flex:0 0 350px;width:350px;height:390px;overflow:hidden;border-radius:22px;background:#f5f0e6;box-shadow:0 16px 38px rgba(10,14,31,.15);border:1px solid rgba(20,30,25,.12);scroll-snap-align:center;transform:scale(.84);opacity:.72;transition:transform .45s ease,opacity .45s ease,box-shadow .45s ease}
-.turnapp-slide:focus-within,.turnapp-slide:hover{transform:scale(1.06);opacity:1;box-shadow:0 24px 48px rgba(10,14,31,.22)}
-.turnapp-slide img{position:absolute;display:block;max-width:none;width:720px;height:585px;object-fit:fill}
-.turnapp-slide span{position:absolute;left:0;right:0;bottom:0;padding:14px 16px;background:rgba(255,255,255,.94);font-size:13px;font-weight:700;color:#15233b}
-.slide-calendar img{left:0;top:-70px}
-.slide-catalog img{left:-360px;top:0}
-.slide-booking img{left:-360px;top:-230px}
-@supports(animation-timeline:view(inline)){.turnapp-slide{animation:turnapp-focus linear both;animation-timeline:view(inline);animation-range:entry 0% exit 100%}@keyframes turnapp-focus{0%,100%{transform:scale(.82);opacity:.65}45%,55%{transform:scale(1.08);opacity:1}}}
+.turnapp-gallery{display:flex;align-items:center;gap:20px;width:100%;overflow-x:auto;overflow-y:hidden;padding:54px max(26px,calc((100% - 330px)/2)) 58px;scroll-snap-type:x mandatory;scroll-padding-inline:calc((100% - 330px)/2);overscroll-behavior-inline:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch;cursor:grab;touch-action:pan-x pan-y}
+.turnapp-gallery::-webkit-scrollbar{display:none}
+.turnapp-gallery.is-dragging{cursor:grabbing;scroll-snap-type:none;user-select:none}
+.turnapp-slide{position:relative;flex:0 0 330px;width:330px;height:365px;overflow:hidden;border-radius:24px;background:#f5f3ed;border:1px solid rgba(20,30,25,.1);box-shadow:0 16px 38px rgba(10,14,31,.12);scroll-snap-align:center;transform:scale(.82);opacity:.58;filter:saturate(.82);transition:transform .38s ease,opacity .38s ease,box-shadow .38s ease,filter .38s ease}
+.turnapp-slide.is-active{transform:scale(1.08);opacity:1;filter:none;box-shadow:0 26px 55px rgba(10,14,31,.2);z-index:2}
+.turnapp-slide img{display:block;width:100%;height:100%;object-fit:contain;padding:12px;background:#fff}
+.turnapp-slide span{position:absolute;left:12px;right:12px;bottom:12px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.96);font-size:12px;font-weight:800;color:#15233b;box-shadow:0 5px 18px rgba(10,14,31,.08)}
 .hero-preview-caption{align-self:flex-end;margin-right:4%;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;color:var(--mist);white-space:nowrap}
-@media(max-width:900px){.hero-art-turnapp{min-height:0;padding:10px 0 20px}.turnapp-carousel{padding-block:34px 38px}}
-@media(max-width:640px){.turnapp-carousel{gap:12px;padding:28px calc((100% - 285px)/2) 34px;scroll-padding-inline:calc((100% - 285px)/2)}.turnapp-slide{flex-basis:285px;width:285px;height:330px;border-radius:17px}.turnapp-slide img{width:680px;height:552px}.slide-calendar img{left:0;top:-65px}.slide-catalog img{left:-340px;top:0}.slide-booking img{left:-340px;top:-217px}.hero-preview-caption{font-size:8px;margin-right:2%}}
-@media(prefers-reduced-motion:reduce){.turnapp-slide{animation:none!important;transition:none}.turnapp-carousel{scroll-behavior:auto}}
+@media(max-width:900px){.hero-art-turnapp{min-height:0;padding:8px 0 20px}.turnapp-gallery{padding-block:46px 52px}}
+@media(max-width:640px){.turnapp-gallery{gap:14px;padding:38px calc((100% - 270px)/2) 44px;scroll-padding-inline:calc((100% - 270px)/2)}.turnapp-slide{flex-basis:270px;width:270px;height:320px;border-radius:19px}.turnapp-slide.is-active{transform:scale(1.045)}.hero-preview-caption{font-size:8px;margin-right:2%}}
+@media(prefers-reduced-motion:reduce){.turnapp-slide{transition:none}.turnapp-gallery{scroll-behavior:auto}}
