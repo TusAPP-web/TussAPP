@@ -4,15 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#6C4CF1">
-  <title>TurnAPP — TusAPP</title>
+  <meta name="description" content="Conocé TurnAPP, organizá los turnos de tu negocio e instalala en tu celular o computadora.">
+  <title>TurnAPP — Organizá los turnos de tu negocio | TusAPP</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../../css/base.css">
   <link rel="stylesheet" href="../../css/componentes.css">
-  <link rel="stylesheet" href="../../css/inicio.css">
   <link rel="stylesheet" href="../../css/responsive.css">
-  <link rel="stylesheet" href="../../css/apps.css">
+  <link rel="stylesheet" href="turnapp.css">
 </head>
 <body>
 <header class="site-header">
@@ -21,59 +21,128 @@
     <span class="brand-name">Tus<span>APP</span></span>
   </a>
   <nav class="main-nav" aria-label="Navegación principal">
-    <a href="../../index.html#apps">Aplicaciones</a>
+    <a href="#funciones">Funciones</a>
+    <a href="#instalacion">Cómo instalar</a>
     <a href="../../paginas/tutoriales.html">Tutoriales</a>
-    <a href="../../paginas/novedades.html">Novedades</a>
     <a href="../../paginas/contacto.html">Contacto</a>
   </nav>
 </header>
 
 <main>
-  <section class="section-shell app-page-hero">
-    <div class="app-page-copy">
-      <p class="eyebrow">TURNOS Y RESERVAS</p>
-      <h1>TurnAPP</h1>
-      <p class="lead">Una herramienta de la familia TusAPP enfocada en la organización de turnos, reservas y atención de clientes.</p>
-      <a class="button button-primary" href="https://bethular.github.io/TurnAPP/panel/panelindex.html" target="_blank" rel="noopener noreferrer">Abrir TurnAPP <span aria-hidden="true">↗</span></a>
-      <a class="app-back" href="../../index.html#apps">← Volver a todas las aplicaciones</a>
-    </div>
+  <section class="turn-hero">
+    <div class="turn-shell turn-hero-grid">
+      <div class="turn-hero-copy">
+        <p class="turn-eyebrow"><span></span> UNA HERRAMIENTA DE TUSAPP</p>
+        <h1>Tu agenda, <em>en orden.</em><br>Tu negocio, en marcha.</h1>
+        <p class="turn-lead">Organizá los turnos, administrá tus horarios y facilitá las reservas de tus clientes desde un solo lugar.</p>
+        <div class="turn-actions">
+          <a class="turn-button turn-button-primary" href="https://tusapp-web.github.io/TurnAPP/panel/panelindex.html" target="_blank" rel="noopener noreferrer">Entrar a TurnAPP <span aria-hidden="true">↗</span></a>
+          <a class="turn-button turn-button-secondary" href="#instalacion">Cómo instalarla</a>
+        </div>
+        <p class="turn-note">Se usa desde el navegador y podés instalarla en tus dispositivos.</p>
+      </div>
 
-    <div class="app-visual" style="background:#6C4CF1">
-      <div class="app-visual-icon">
-        <img src="../../assets/iconos/turnapp.svg" alt="TurnAPP">
+      <div class="turn-preview" aria-label="Ilustración de una agenda de turnos">
+        <div class="preview-window">
+          <div class="preview-top"><div class="preview-dots"><i></i><i></i><i></i></div><span>AGENDA · VISTA ILUSTRATIVA</span><b>•••</b></div>
+          <div class="preview-heading"><div><small>MI NEGOCIO</small><strong>Agenda de hoy</strong></div><span class="preview-date">LUN · 08</span></div>
+          <div class="preview-days"><span>LU</span><span>MA</span><span>MI</span><span>JU</span><span>VI</span><span>SA</span><span>DO</span></div>
+          <div class="preview-slots">
+            <div class="preview-slot"><time>09:00</time><span class="slot-line"></span><label>Turno reservado</label></div>
+            <div class="preview-slot"><time>10:00</time><span class="slot-line slot-purple"></span><label>Turno reservado</label></div>
+            <div class="preview-slot"><time>11:00</time><span class="slot-line slot-empty"></span><label class="slot-muted">Horario disponible</label></div>
+            <div class="preview-slot"><time>12:00</time><span class="slot-line slot-purple"></span><label>Turno reservado</label></div>
+          </div>
+          <div class="preview-footer"><span><i></i> Agenda organizada</span><span>TurnAPP</span></div>
+        </div>
+        <div class="preview-float"><span class="float-check">✓</span><span><b>Todo más claro</b><small>Tu agenda, de un vistazo</small></span></div>
       </div>
     </div>
   </section>
 
-  <section class="section-shell app-page-section">
-    <p class="eyebrow">ENFOQUE</p>
-    <h2>Una herramienta pensada para una necesidad concreta.</h2>
-    <div class="feature-grid">
-      <article class="feature-card">
-  <span class="feature-number">01</span>
-  <h3>Turnos organizados</h3>
-  <p>Una propuesta enfocada en ordenar la agenda y facilitar la gestión de turnos.</p>
-</article>
-<article class="feature-card">
-  <span class="feature-number">02</span>
-  <h3>Reservas más simples</h3>
-  <p>Pensada para que el cliente pueda encontrar y solicitar un turno de manera clara.</p>
-</article>
-<article class="feature-card">
-  <span class="feature-number">03</span>
-  <h3>Gestión desde un solo lugar</h3>
-  <p>Una estructura preparada para reunir la información que el negocio necesita para trabajar.</p>
-</article>
+  <section id="funciones" class="turn-section turn-shell">
+    <div class="turn-section-heading">
+      <p class="turn-eyebrow">LO QUE PODÉS ORGANIZAR</p>
+      <h2>Todo lo importante,<br><em>más fácil de manejar.</em></h2>
+      <p>TurnAPP reúne herramientas para administrar la agenda de tu negocio y facilitar el trabajo cotidiano.</p>
+    </div>
+    <div class="turn-feature-grid">
+      <article class="turn-feature-card">
+        <span class="feature-icon">▦</span><small>01 / AGENDA</small>
+        <h3>Turnos organizados</h3>
+        <p>Visualizá y administrá las reservas de tu negocio en una agenda centralizada.</p>
+      </article>
+      <article class="turn-feature-card">
+        <span class="feature-icon">◷</span><small>02 / HORARIOS</small>
+        <h3>Horarios y servicios</h3>
+        <p>Configurá los servicios que ofrecés y los horarios en los que atendés.</p>
+      </article>
+      <article class="turn-feature-card">
+        <span class="feature-icon">♙</span><small>03 / CLIENTES</small>
+        <h3>Información de clientes</h3>
+        <p>Consultá y organizá la información de las personas que reservan tus servicios.</p>
+      </article>
+      <article class="turn-feature-card">
+        <span class="feature-icon">↗</span><small>04 / CATÁLOGO</small>
+        <h3>Compartí tus servicios</h3>
+        <p>Compartí el acceso a tu catálogo para que tus clientes conozcan tu propuesta y gestionen sus reservas.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="turn-how">
+    <div class="turn-shell turn-how-grid">
+      <div>
+        <p class="turn-eyebrow">EMPEZAR ES SIMPLE</p>
+        <h2>Prepará tu agenda<br><em>paso a paso.</em></h2>
+        <p class="turn-how-intro">Ingresá a TurnAPP y configurá tu espacio de trabajo para empezar a organizar tus turnos.</p>
+      </div>
+      <ol class="turn-steps">
+        <li><span>01</span><div><h3>Creá tu cuenta</h3><p>Registrá tu negocio e ingresá al panel de TurnAPP.</p></div></li>
+        <li><span>02</span><div><h3>Configurá tu atención</h3><p>Cargá tus servicios y establecé tus horarios de trabajo.</p></div></li>
+        <li><span>03</span><div><h3>Compartí tu catálogo</h3><p>Facilitá a tus clientes el acceso a tus servicios y reservas.</p></div></li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="instalacion" class="turn-section turn-shell">
+    <div class="turn-section-heading install-heading">
+      <p class="turn-eyebrow">INSTALACIÓN</p>
+      <h2>TurnAPP te acompaña<br><em>en todos tus dispositivos.</em></h2>
+      <p>No necesitás descargar un APK ni buscarla en una tienda. TurnAPP se abre desde el navegador y puede instalarse como aplicación web.</p>
+    </div>
+    <div class="install-grid">
+      <article class="install-card">
+        <div class="install-device">ANDROID</div>
+        <h3>Celulares Android</h3>
+        <ol><li>Abrí TurnAPP con Google Chrome.</li><li>Entrá al menú de los tres puntos.</li><li>Elegí «Instalar aplicación» o «Agregar a pantalla principal».</li></ol>
+      </article>
+      <article class="install-card">
+        <div class="install-device">IPHONE</div>
+        <h3>iPhone y iPad</h3>
+        <ol><li>Abrí TurnAPP con Safari.</li><li>Tocá el botón Compartir.</li><li>Elegí «Agregar a pantalla de inicio» y confirmá.</li></ol>
+      </article>
+      <article class="install-card">
+        <div class="install-device">COMPUTADORA</div>
+        <h3>PC o notebook</h3>
+        <ol><li>Abrí TurnAPP con Chrome o Edge.</li><li>Buscá el ícono de instalación en la barra de direcciones o el menú.</li><li>Seleccioná «Instalar».</li></ol>
+      </article>
+    </div>
+    <p class="install-footnote">La opción de instalación puede variar según el navegador y el dispositivo. Si no aparece, podés seguir usando TurnAPP directamente desde el navegador.</p>
+  </section>
+
+  <section class="turn-final">
+    <div class="turn-shell turn-final-inner">
+      <div><p class="turn-eyebrow">¿LISTO PARA EMPEZAR?</p><h2>Tu tiempo vale.<br><em>Organizalo mejor.</em></h2><p>Ingresá a TurnAPP y empezá a preparar la agenda de tu negocio.</p></div>
+      <a class="turn-button turn-button-white" href="https://tusapp-web.github.io/TurnAPP/panel/panelindex.html" target="_blank" rel="noopener noreferrer">Abrir TurnAPP <span aria-hidden="true">↗</span></a>
     </div>
   </section>
 </main>
 
 <footer class="site-footer">
   <div class="section-shell footer-inner">
-    <div>
-      <div class="footer-brand">Tus<span>APP</span></div>
-      <p>TurnAPP forma parte de la familia TusAPP.</p>
-    </div>
+    <div><div class="footer-brand">Tus<span>APP</span></div><p>TurnAPP forma parte de la familia TusAPP.</p></div>
+    <div class="turn-footer-links"><a href="../../index.html">TusAPP</a><a href="../../paginas/tutoriales.html">Tutoriales</a><a href="../../paginas/contacto.html">Contacto</a></div>
     <span class="footer-copy">© TusAPP</span>
   </div>
 </footer>
