@@ -43,7 +43,7 @@
       </div>
 
       <div class="turn-preview">
-        <img class="turn-hero-image" src="../../assets/imagenes/turnapp-calendario.webp" alt="Captura real del calendario de TurnAPP">
+        <img class="turn-hero-image" src="../../assets/imagenes/carrusel/calendario.webp?v=1" alt="Captura real del calendario de TurnAPP" width="540" height="549">
       </div>
     </div>
   </section>
@@ -90,23 +90,26 @@
         <button type="button" class="turn-gallery-arrow" data-gallery-next aria-label="Ver pantalla siguiente">→</button>
       </div>
     </div>
-    <div class="turn-gallery-track" data-gallery-track tabindex="0" aria-label="Galería de pantallas de TurnAPP">
-      <figure class="turn-shot turn-shot-reserva is-active">
-        <div class="turn-shot-image"><img src="../../assets/imagenes/turnapp-reserva.webp" alt="Formulario público para elegir servicios, fecha y horario y pedir un turno" loading="lazy"></div>
-        <figcaption><strong>Reservas</strong><span>El cliente elige servicios y horarios disponibles.</span></figcaption>
-      </figure>
-      <figure class="turn-shot turn-shot-catalogo">
-        <div class="turn-shot-image"><img src="../../assets/imagenes/turnapp-catalogo.webp" alt="Administración de servicios, precios, duración y ofertas" loading="lazy"></div>
-        <figcaption><strong>Servicios y catálogo</strong><span>Configurá precios, duración y promociones.</span></figcaption>
-      </figure>
-      <figure class="turn-shot turn-shot-caja">
-        <div class="turn-shot-image"><img src="../../assets/imagenes/turnapp-caja.webp" alt="Pantalla de caja con ingresos, gastos y movimientos" loading="lazy"></div>
-        <figcaption><strong>Caja</strong><span>Controlá ingresos, gastos y movimientos.</span></figcaption>
-      </figure>
-      <figure class="turn-shot turn-shot-reservados">
-        <div class="turn-shot-image"><img src="../../assets/imagenes/turnapp-reservados.webp" alt="Listado de turnos reservados con cliente, fecha y horario" loading="lazy"></div>
-        <figcaption><strong>Turnos reservados</strong><span>Consultá rápidamente quién tiene cada turno.</span></figcaption>
-      </figure>
+    <div class="turn-car">
+      <div class="turn-car-track" id="turn-car-track" tabindex="0" role="region" aria-roledescription="carrusel" aria-label="Pantallas de TurnAPP">
+        <figure class="turn-car-slide" style="--r:0.9836" data-title="Calendario" data-desc="Mirá de un vistazo qué días tenés libres, ocupados o cerrados.">
+          <div class="turn-car-shot"><img src="../../assets/imagenes/carrusel/calendario.webp?v=1" alt="Calendario mensual de turnos" width="540" height="549" draggable="false"></div>
+        </figure>
+        <figure class="turn-car-slide" style="--r:2.0674" data-title="Servicios y catálogo" data-desc="Configurá precios, duración y promociones.">
+          <div class="turn-car-shot"><img src="../../assets/imagenes/carrusel/catalogo.webp?v=1" alt="Administración de servicios, precios, duración y ofertas" width="1073" height="519" draggable="false"></div>
+        </figure>
+        <figure class="turn-car-slide" style="--r:0.9615" data-title="Caja" data-desc="Controlá ingresos, gastos y movimientos.">
+          <div class="turn-car-shot"><img src="../../assets/imagenes/carrusel/caja.webp?v=1" alt="Pantalla de caja con ingresos, gastos y movimientos" width="474" height="493" draggable="false"></div>
+        </figure>
+        <figure class="turn-car-slide" style="--r:1.0907" data-title="Turnos reservados" data-desc="Consultá rápidamente quién tiene cada turno.">
+          <div class="turn-car-shot"><img src="../../assets/imagenes/carrusel/reservados.webp?v=1" alt="Listado de turnos reservados con cliente, fecha y horario" width="517" height="474" draggable="false"></div>
+        </figure>
+        <figure class="turn-car-slide" style="--r:0.7189" data-title="Reservas" data-desc="El cliente elige servicios y horarios disponibles.">
+          <div class="turn-car-shot"><img src="../../assets/imagenes/carrusel/reserva.webp?v=1" alt="Formulario público para elegir servicios, fecha y horario y pedir un turno" width="404" height="562" draggable="false"></div>
+        </figure>
+      </div>
+      <div class="turn-car-caption" id="turn-car-caption" aria-live="polite"><strong></strong><span></span></div>
+      <div class="turn-car-dots" id="turn-car-dots"></div>
     </div>
   </section>
 
@@ -167,48 +170,7 @@
   </div>
 </footer>
 
-<script>
-(() => {
-  const track = document.querySelector('[data-gallery-track]');
-  if (!track) return;
-  const cards = [...track.querySelectorAll('.turn-shot')];
-  const prev = document.querySelector('[data-gallery-prev]');
-  const next = document.querySelector('[data-gallery-next]');
-  let active = 0;
-  let frame = 0;
-  const setActive = () => {
-    frame = 0;
-    const center = track.getBoundingClientRect().left + track.clientWidth / 2;
-    let closest = 0;
-    let distance = Infinity;
-    cards.forEach((card, index) => {
-      const rect = card.getBoundingClientRect();
-      const d = Math.abs(rect.left + rect.width / 2 - center);
-      if (d < distance) { distance = d; closest = index; }
-    });
-    active = closest;
-    cards.forEach((card, index) => {
-      const selected = index === active;
-      card.classList.toggle('is-active', selected);
-      card.setAttribute('aria-current', selected ? 'true' : 'false');
-    });
-  };
-  const schedule = () => { if (!frame) frame = requestAnimationFrame(setActive); };
-  const go = (index) => {
-    const target = Math.max(0, Math.min(cards.length - 1, index));
-    cards[target].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-  };
-  prev?.addEventListener('click', () => go(active - 1));
-  next?.addEventListener('click', () => go(active + 1));
-  track.addEventListener('scroll', schedule, { passive: true });
-  window.addEventListener('resize', schedule);
-  cards.forEach(card => card.addEventListener('click', () => {
-    const index = cards.indexOf(card);
-    if (index !== active) go(index);
-  }));
-  setActive();
-})();
-</script>
+<script src="carrusel.js?v=1"></script>
 
 </body>
 </html>

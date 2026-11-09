@@ -41,20 +41,20 @@
 
 
 
-/* Carrusel de pantallas de TurnAPP (capturas completas, la central crece) */
-.hero-art-turnapp{container-type:inline-size;min-height:0;width:100%;min-width:0;display:flex;flex-direction:column;justify-content:center;align-items:stretch;gap:6px;overflow:hidden}
-.turnapp-gallery{--h:clamp(220px,52cqw,300px);--maxw:clamp(230px,66cqw,380px);display:flex;align-items:center;gap:clamp(22px,7cqw,40px);width:100%;padding:46px 20% 40px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch;cursor:grab;touch-action:pan-x pan-y;outline:none;transition:opacity .35s ease}
+/* Galería dinámica de capturas reales e independientes de TurnAPP */
+.hero-art-turnapp{min-height:500px;width:100%;min-width:0;display:flex;flex-direction:column;justify-content:center;align-items:stretch;gap:10px;overflow:hidden}
+.turnapp-gallery{display:flex;align-items:center;gap:20px;width:100%;overflow-x:auto;overflow-y:hidden;padding:54px max(26px,calc((100% - 330px)/2)) 58px;scroll-snap-type:x mandatory;scroll-padding-inline:calc((100% - 330px)/2);overscroll-behavior-inline:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch;cursor:grab;touch-action:pan-x pan-y}
 .turnapp-gallery::-webkit-scrollbar{display:none}
 .turnapp-gallery.is-dragging{cursor:grabbing;scroll-snap-type:none;user-select:none}
-.turnapp-gallery.is-wrapping{opacity:0}
-.turnapp-slide{--t:0;flex:0 0 auto;margin:0;width:min(calc(var(--h)*var(--r)),var(--maxw));scroll-snap-align:center;scroll-snap-stop:always;transform:scale(calc(.78 + .3*var(--t)));opacity:calc(.45 + .55*var(--t));will-change:transform,opacity;cursor:pointer}
-.turnapp-shot{aspect-ratio:var(--r);border-radius:18px;overflow:hidden;background:#fff;border:1px solid rgba(20,30,25,.1);box-shadow:0 calc(10px + 18px*var(--t)) calc(24px + 30px*var(--t)) rgba(10,14,31,calc(.1 + .1*var(--t)))}
-.turnapp-shot img{display:block;width:100%;height:100%;max-width:none;object-fit:fill;-webkit-user-drag:none;user-select:none;pointer-events:none}
-.turnapp-slide figcaption{margin-top:12px;text-align:center;font-size:12px;font-weight:800;color:var(--navy);opacity:var(--t);letter-spacing:.01em}
-.turnapp-dots{display:flex;justify-content:center;gap:8px;margin-top:2px}
-.turnapp-dots button{width:8px;height:8px;padding:0;border:0;border-radius:99px;background:var(--line);cursor:pointer;transition:width .3s ease,background .3s ease}
-.turnapp-dots button.is-active{width:24px;background:var(--electric)}
-.hero-preview-caption{align-self:center;margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;color:var(--mist);white-space:nowrap}
-@media(max-width:900px){.hero-art-turnapp{padding:8px 0 20px}}
-@media(max-width:640px){.turnapp-gallery{padding-block:36px 34px}.turnapp-shot{border-radius:14px}.hero-preview-caption{font-size:8px}}
-@media(prefers-reduced-motion:reduce){.turnapp-gallery{transition:none}.turnapp-dots button{transition:none}}
+.turnapp-slide{position:relative;flex:0 0 330px;width:330px;height:365px;overflow:hidden;border-radius:24px;background:#f5f3ed;border:1px solid rgba(20,30,25,.1);box-shadow:0 16px 38px rgba(10,14,31,.12);scroll-snap-align:center;transform:scale(.82);opacity:.58;filter:saturate(.82);transition:transform .42s ease,opacity .42s ease,box-shadow .42s ease,filter .42s ease}
+.turnapp-slide.is-active{transform:scale(1.08);opacity:1;filter:none;box-shadow:0 26px 55px rgba(10,14,31,.2);z-index:2}
+.turnapp-slide img{display:block;width:100%;height:100%;object-fit:contain;padding:12px;background:#fff}
+.turnapp-slide span{position:absolute;left:12px;right:12px;bottom:12px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.96);font-size:12px;font-weight:800;color:#15233b;box-shadow:0 5px 18px rgba(10,14,31,.08)}
+.hero-preview-caption{align-self:flex-end;margin-right:4%;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;color:var(--mist);white-space:nowrap}
+@media(max-width:900px){.hero-art-turnapp{min-height:0;padding:8px 0 20px}.turnapp-gallery{padding-block:46px 52px}}
+@media(max-width:640px){.turnapp-gallery{gap:14px;padding:38px calc((100% - 270px)/2) 44px;scroll-padding-inline:calc((100% - 270px)/2)}.turnapp-slide{flex-basis:270px;width:270px;height:320px;border-radius:19px}.turnapp-slide.is-active{transform:scale(1.045)}.hero-preview-caption{font-size:8px;margin-right:2%}}
+@media(prefers-reduced-motion:reduce){.turnapp-slide{transition:none}.turnapp-gallery{scroll-behavior:auto}}
+
+
+/* La captura original de portada contiene el calendario en el panel izquierdo. */
+.turnapp-slide:last-child img{object-fit:none;object-position:left top;padding:0}
