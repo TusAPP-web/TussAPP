@@ -1,5 +1,5 @@
 // GimAPP · versión 0.1 · 3 de noviembre de 2026.
-import { approveRequest, addCashEntry, getCatalogConfiguration, getCashEntries, getClients, getGymProfile, getPendingRequests, rejectRequest, saveAttendance, savePublicCatalog, updateGymProfile } from './data.js';
+import { approveRequest, addCashEntry, getCatalogConfiguration, getCashEntries, getClients, getGymProfile, getPendingRequests, rejectRequest, saveAttendance, saveGymSchedule, savePublicCatalog, updateGymProfile } from './data.js';
 
 const app = document.querySelector('#app');
 const nav = document.querySelector('#main-nav');
@@ -41,7 +41,17 @@ function cashPage() { const rows = state.cash.map(entry => `<tr><td>${esc(entry.
 function catalogPage() { const turns = state.catalog.turns || []; return `${heading('Configuración del catálogo', 'Clases, horarios, cupos y publicación del enlace de clientes.')}<section class="card"><label class="field">Nombre público<input id="catalog-name" value="${esc(state.catalog.gymName || state.gym.name)}"></label><label class="consent"><input id="catalog-published" type="checkbox" ${state.catalog.published ? 'checked' : ''}><span>Publicar el catálogo para clientes.</span></label><div class="section-label">Turnos</div>${turns.length ? table(turns.map(turn => `<tr><td>${esc(turn.day)} ${esc(turn.start)}–${esc(turn.end)}</td><td>${esc(turn.discipline)}</td><td>${turn.enrolled || 0}/${turn.capacity || 0}</td></tr>`).join(''), ['Horario', 'Disciplina', 'Ocupación']) : '<p class="small muted">Todavía no hay turnos. Agregá el primero.</p>'}<button class="button" data-action="new-turn">＋ Agregar turno</button><button class="button primary" data-action="save-catalog">Guardar catálogo</button></section>`; }
 function settingsPage() {
   const turns = state.catalog.turns || [];
-  return `${heading('Configuración', 'Datos del gimnasio y opciones del catálogo.')}
+  const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+  const rows = turns.map((turn, index) => \`<div class="schedule-editor-row" data-schedule-row>
+    <label class="field">Día<select class="select schedule-day">${days.map(day => \`<option ${turn.day === day ? 'selected' : ''}>${day}</option>\`).join('')}</select></label>
+    <label class="field">Desde<input class="schedule-start" type="time" value="${esc(turn.start)}"></label>
+    <label class="field">Hasta<input class="schedule-end" type="time" value="${esc(turn.end)}"></label>
+    <label class="field">Disciplina<input class="schedule-discipline" value="${esc(turn.discipline)}"></label>
+    <label class="field">Instructor (opcional)<input class="schedule-instructor" value="${esc(turn.instructor || '')}" placeholder="Nombre del instructor"></label>
+    <label class="field">Cupo<input class="schedule-capacity" type="number" min="1" value="${Number(turn.capacity) || 10}"></label>
+    <button class="button small danger" type="button" data-action="remove-schedule-row">Quitar</button>
+  </div>\`).join('');
+  return \`${heading('Configuración', 'Datos del gimnasio y horarios de actividades.')}
     <section class="card">
       <div class="card-head"><h2>Datos del gimnasio</h2></div>
       <label class="field">Nombre del gimnasio<input id="gym-name" value="${esc(state.gym.name)}"></label>
@@ -49,14 +59,16 @@ function settingsPage() {
       <button class="button primary" data-action="save-gym">Guardar configuración</button>
     </section>
     <section class="card" style="margin-top:16px">
-      <div class="card-head"><h2>Configuración del catálogo</h2></div>
+      <div class="card-head"><h2>Horarios de actividades</h2></div>
+      <p class="small muted">Configurá los días, horarios, disciplinas e instructores. El instructor es opcional.</p>
+      <label class="consent"><input id="allow-overlaps" type="checkbox" ${state.catalog.allowScheduleOverlaps ? 'checked' : ''}><span>Permitir superposición de horarios (distintas disciplinas o instructores).</span></label>
+      <div id="schedule-editor">${rows || '<p class="small muted">Todavía no hay horarios configurados.</p>'}</div>
+      <button class="button" data-action="add-schedule-row">＋ Agregar horario</button>
+      <div class="section-label">Publicación del catálogo</div>
       <label class="field">Nombre público<input id="catalog-name" value="${esc(state.catalog.gymName || state.gym.name)}"></label>
-      <label class="consent"><input id="catalog-published" type="checkbox" ${state.catalog.published ? 'checked' : ''}><span>Publicar el catálogo para clientes.</span></label>
-      <div class="section-label">Turnos</div>
-      ${turns.length ? table(turns.map(turn => `<tr><td>${esc(turn.day)} ${esc(turn.start)}–${esc(turn.end)}</td><td>${esc(turn.discipline)}</td><td>${turn.enrolled || 0}/${turn.capacity || 0}</td></tr>`).join(''), ['Horario', 'Disciplina', 'Ocupación']) : '<p class="small muted">Todavía no hay turnos. Agregá el primero.</p>'}
-      <button class="button" data-action="new-turn">＋ Agregar turno</button>
-      <button class="button primary" data-action="save-catalog">Guardar catálogo</button>
-    </section>`;
+      <label class="consent"><input id="catalog-published" type="checkbox" ${state.catalog.published ? 'checked' : ''}><span>Publicar estos horarios para clientes.</span></label>
+      <button class="button primary" data-action="save-schedule">Guardar horarios y publicar configuración</button>
+    </section>\`;
 }
 function plansPage() { return `${heading('Planes de GimAPP', 'Los cobros se configurarán más adelante.')}<section class="card"><h2>Plan actual: ${esc(state.gym.plan || 'free')}</h2><p class="muted">Para consultas sobre Pro o Gold: <a href="mailto:tusappasistente@gmail.com">tusappasistente@gmail.com</a>.</p></section>`; }
 function view() { return ({ inicio: home, solicitudes: requestsPage, clientes: clientsPage, fecha: datePage, caja: cashPage, configuracion: settingsPage, 'catalogo-config': catalogPage, planes: plansPage }[page] || home)(); }
@@ -76,9 +88,48 @@ document.addEventListener('click', async event => {
   if (action === 'attendance') { await saveAttendance({ gymId: membership.gymId, trainerUid: user.uid, clientUid: button.dataset.client, turnId: button.dataset.turn, date: dateKey(selectedDate), status: button.dataset.status }); toast('Asistencia guardada.'); }
   if (action === 'new-cash') openModal('Registrar movimiento', '<label class="field">Tipo<select id="cash-type" class="select"><option value="income">Ingreso</option><option value="expense">Egreso</option></select></label><label class="field">Importe<input id="cash-amount" type="number" min="1"></label><label class="field">Categoría<input id="cash-category"></label><label class="field">Detalle<input id="cash-note"></label><label class="field">Fecha<input id="cash-date" type="date" value="' + dateKey(new Date()) + '"></label>', '<button class="button" data-close>Cancelar</button><button class="button primary" data-action="save-cash">Guardar</button>');
   if (action === 'save-cash') { await addCashEntry({ gymId: membership.gymId, type: document.querySelector('#cash-type').value, amount: document.querySelector('#cash-amount').value, category: document.querySelector('#cash-category').value, note: document.querySelector('#cash-note').value, date: document.querySelector('#cash-date').value, actorUid: user.uid }); modal.close(); toast('Movimiento guardado.'); render(); }
-  if (action === 'new-turn') openModal('Agregar turno', '<label class="field">Día<select id="turn-day" class="select">' + weekDays.map(day => `<option>${day}</option>`).join('') + '</select></label><label class="field">Inicio<input id="turn-start" type="time" value="18:00"></label><label class="field">Fin<input id="turn-end" type="time" value="19:00"></label><label class="field">Disciplina<input id="turn-discipline"></label><label class="field">Cupo<input id="turn-capacity" type="number" min="1" value="10"></label>', '<button class="button" data-close>Cancelar</button><button class="button primary" data-action="save-turn">Agregar</button>');
-  if (action === 'save-turn') { const turns = [...state.catalog.turns, { id: `turn-${Date.now()}`, day: document.querySelector('#turn-day').value, start: document.querySelector('#turn-start').value, end: document.querySelector('#turn-end').value, discipline: document.querySelector('#turn-discipline').value, capacity: Number(document.querySelector('#turn-capacity').value), enrolled: 0, waitlist: true }]; await savePublicCatalog({ gymId: membership.gymId, gymName: state.catalog.gymName || state.gym.name, turns, published: state.catalog.published }); modal.close(); page = 'configuracion'; toast('Turno agregado.'); render(); }
-  if (action === 'save-catalog') { await savePublicCatalog({ gymId: membership.gymId, gymName: document.querySelector('#catalog-name').value, turns: state.catalog.turns, published: document.querySelector('#catalog-published').checked }); toast('Catálogo guardado.'); render(); }
+  if (action === 'add-schedule-row') {
+    const editor = document.querySelector('#schedule-editor');
+    editor.querySelector('.muted')?.remove();
+    const row = document.createElement('div');
+    row.className = 'schedule-editor-row';
+    row.setAttribute('data-schedule-row', '');
+    row.innerHTML = \`<label class="field">Día<select class="select schedule-day">${['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'].map(day => \`<option>${day}</option>\`).join('')}</select></label><label class="field">Desde<input class="schedule-start" type="time" value="08:00"></label><label class="field">Hasta<input class="schedule-end" type="time" value="09:00"></label><label class="field">Disciplina<input class="schedule-discipline" placeholder="Ej. Funcional"></label><label class="field">Instructor (opcional)<input class="schedule-instructor" placeholder="Nombre del instructor"></label><label class="field">Cupo<input class="schedule-capacity" type="number" min="1" value="10"></label><button class="button small danger" type="button" data-action="remove-schedule-row">Quitar</button>\`;
+    editor.append(row);
+  }
+  if (action === 'remove-schedule-row') button.closest('[data-schedule-row]')?.remove();
+  if (action === 'save-schedule') {
+    const turns = [...document.querySelectorAll('[data-schedule-row]')].map((row, index) => ({
+      id: row.dataset.turnId || \`turn-${Date.now()}-${index}\`,
+      day: row.querySelector('.schedule-day').value,
+      start: row.querySelector('.schedule-start').value,
+      end: row.querySelector('.schedule-end').value,
+      discipline: row.querySelector('.schedule-discipline').value.trim(),
+      instructor: row.querySelector('.schedule-instructor').value.trim(),
+      capacity: Number(row.querySelector('.schedule-capacity').value) || 10,
+      enrolled: 0,
+      waitlist: true,
+    }));
+    const allowOverlaps = document.querySelector('#allow-overlaps').checked;
+    for (const turn of turns) if (!turn.start || !turn.end || turn.start >= turn.end || !turn.discipline) {
+      toast('Completá un horario válido y la disciplina de cada turno.');
+      return;
+    }
+    if (!allowOverlaps) {
+      for (const day of ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo']) {
+        const sameDay = turns.filter(turn => turn.day === day).sort((x,y) => x.start.localeCompare(y.start));
+        for (let i=1;i<sameDay.length;i++) if (sameDay[i].start < sameDay[i-1].end) {
+          toast(\`Hay horarios superpuestos el día ${day}. Activá la opción para permitirlos.\`);
+          return;
+        }
+      }
+    }
+    await saveGymSchedule({ gymId: membership.gymId, turns, allowScheduleOverlaps: allowOverlaps, gymName: document.querySelector('#catalog-name').value, published: document.querySelector('#catalog-published').checked });
+    toast('Horarios guardados.');
+    render();
+  }
+  if (action === 'save-catalog') toast('La publicación se guarda junto con los horarios desde Configuración.');
+
   if (action === 'save-gym') { await updateGymProfile(membership.gymId, { name: document.querySelector('#gym-name').value.trim(), absenceNoticeHours: Number(document.querySelector('#absence-hours').value) }); toast('Configuración guardada.'); render(); }
   if (button.dataset.close !== undefined) modal.close();
 });
