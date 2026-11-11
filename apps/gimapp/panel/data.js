@@ -52,8 +52,43 @@ export async function getCashEntries(gymId) {
 
 export async function getCatalogConfiguration(gymId) {
   const { db } = await getFirebaseServices();
-  const snapshot = await getDoc(doc(db, 'publicCatalog', gymId));
-  return snapshot.exists() ? snapshot.data() : { gymName: '', turns: [], published: false };
+  const [gymSnapshot, catalogSnapshot] = await Promise.all([
+    getDoc(gymDoc(db, gymId)),
+    getDoc(doc(db, 'publicCatalog', gymId)),
+  ]);
+  const catalog = catalogSnapshot.exists() ? catalogSnapshot.data() : { gymName: '', turns: [], published: false };
+  const gym = gymSnapshot.exists() ? gymSnapshot.data() : {};
+  return {
+    ...catalog,
+    turns: Array.isArray(gym.scheduleTurns) ? gym.scheduleTurns : (Array.isArray(catalog.turns) ? catalog.turns : []),
+    allowScheduleOverlaps: gym.allowScheduleOverlaps === true,
+  };
+}
+
+export async function saveGymSchedule({ gymId, turns, allowScheduleOverlaps, gymName, published }) {
+  const { db } = await getFirebaseServices();
+  const scheduleTurns = (Array.isArray(turns) ? turns : []).map(turn => ({
+    id: cleanText(turn.id),
+    day: cleanText(turn.day),
+    start: cleanText(turn.start),
+    end: cleanText(turn.end),
+    discipline: cleanText(turn.discipline),
+    instructor: cleanText(turn.instructor) || '',
+    capacity: Math.max(1, Number(turn.capacity) || 10),
+    enrolled: Number(turn.enrolled) || 0,
+    waitlist: turn.waitlist !== false,
+  }));
+  await updateDoc(gymDoc(db, gymId), {
+    scheduleTurns,
+    allowScheduleOverlaps: Boolean(allowScheduleOverlaps),
+    updatedAt: serverTimestamp(),
+  });
+  await setDoc(doc(db, 'publicCatalog', gymId), {
+    gymName: cleanText(gymName),
+    turns: scheduleTurns,
+    published: Boolean(published),
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
 }
 
 export async function updateGymProfile(gymId, values) {
