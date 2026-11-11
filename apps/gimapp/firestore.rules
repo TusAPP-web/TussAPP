@@ -40,7 +40,7 @@ service cloud.firestore {
         && request.resource.data.ownerUid == resource.data.ownerUid
         && request.resource.data.plan == resource.data.plan
         && request.resource.data.status == resource.data.status
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'absenceNoticeHours', 'updatedAt']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'absenceNoticeHours', 'scheduleTurns', 'allowScheduleOverlaps', 'updatedAt']);
       allow delete: if false;
       match /team/{userUid} {
         allow get, list: if signedIn() && (resource.data.uid == request.auth.uid || administrator(gymId));
