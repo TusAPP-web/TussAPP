@@ -42,7 +42,7 @@ function catalogPage() { const turns = state.catalog.turns || []; return `${head
 function settingsPage() {
   const turns = state.catalog.turns || [];
   const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-  const rows = turns.map((turn, index) => \`<div class="schedule-editor-row" data-schedule-row>
+  const rows = turns.map((turn, index) => \`<div class="schedule-editor-row" data-schedule-row data-turn-id="${esc(turn.id)}" data-enrolled="${Number(turn.enrolled)||0}" data-waitlist="${turn.waitlist !== false}">
     <label class="field">Día<select class="select schedule-day">${days.map(day => \`<option ${turn.day === day ? 'selected' : ''}>${day}</option>\`).join('')}</select></label>
     <label class="field">Desde<input class="schedule-start" type="time" value="${esc(turn.start)}"></label>
     <label class="field">Hasta<input class="schedule-end" type="time" value="${esc(turn.end)}"></label>
@@ -107,8 +107,8 @@ document.addEventListener('click', async event => {
       discipline: row.querySelector('.schedule-discipline').value.trim(),
       instructor: row.querySelector('.schedule-instructor').value.trim(),
       capacity: Number(row.querySelector('.schedule-capacity').value) || 10,
-      enrolled: 0,
-      waitlist: true,
+      enrolled: Number(row.dataset.enrolled) || 0,
+      waitlist: row.dataset.waitlist !== 'false',
     }));
     const allowOverlaps = document.querySelector('#allow-overlaps').checked;
     for (const turn of turns) if (!turn.start || !turn.end || turn.start >= turn.end || !turn.discipline) {
