@@ -10,5 +10,5 @@ if (session) {
     await signOutUser();
     window.location.replace('../index.html');
   });
-  await import('./live-panel.js');
+  await import('./live-panel.js?v=20261111-config-catalogo-1');
 }
