@@ -14,7 +14,6 @@ on:
 
 permissions:
   contents: read
-  checks: write
   id-token: write
 
 jobs:
@@ -22,12 +21,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Deploy isolated preview channel
-        uses: FirebaseExtended/action-hosting-deploy@v0
+
+      - name: Authenticate to Google Cloud with Workload Identity Federation
+        uses: google-github-actions/auth@v2
         with:
-          repoToken: '${{ secrets.GITHUB_TOKEN }}'
-          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_GIMAPP_67719 }}'
-          projectId: gimapp-67719
-          entryPoint: apps/gimapp
-          channelId: gimapp-feature-preview
-          expires: 7d
+          workload_identity_provider: projects/857919299458/locations/global/workloadIdentityPools/github-gimapp-preview/providers/github-actions
+          service_account: github-gimapp-preview@gimapp-67719.iam.gserviceaccount.com
+
+      - name: Set up Firebase CLI
+        run: npm install --global firebase-tools
+
+      - name: Deploy isolated preview channel
+        working-directory: apps/gimapp
+        run: firebase hosting:channel:deploy gimapp-feature-preview --project gimapp-67719 --expires 7d
