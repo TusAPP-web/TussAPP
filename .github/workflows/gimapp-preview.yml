@@ -33,6 +33,9 @@ jobs:
           workload_identity_provider: projects/857919299458/locations/global/workloadIdentityPools/github-gimapp-preview/providers/github-actions
           service_account: github-gimapp-preview@gimapp-67719.iam.gserviceaccount.com
 
+      - name: Verify Google Cloud access token
+        run: gcloud auth print-access-token > /dev/null
+
       - name: Deploy isolated preview channel
         working-directory: apps/gimapp
-        run: npx --yes firebase-tools@15.22.1 hosting:channel:deploy gimapp-feature-preview --project gimapp-67719 --expires 7d
+        run: npx --yes firebase-tools@15.22.3 hosting:channel:deploy gimapp-feature-preview --project gimapp-67719 --expires 7d --debug
