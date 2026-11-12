@@ -1,0 +1,35 @@
+name: GimAPP backend checks
+
+on:
+  push:
+    branches:
+      - feature/gimapp-privacidad-eliminacion
+    paths:
+      - 'apps/gimapp/functions/**'
+      - 'apps/gimapp/firebase.json'
+      - '.github/workflows/gimapp-functions-check.yml'
+  pull_request:
+    paths:
+      - 'apps/gimapp/functions/**'
+      - 'apps/gimapp/firebase.json'
+      - '.github/workflows/gimapp-functions-check.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/gimapp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Validate Firebase configuration
+        run: node -e "JSON.parse(require('fs').readFileSync('firebase.json', 'utf8'))"
+      - name: Install Functions dependencies
+        working-directory: apps/gimapp/functions
+        run: npm install --ignore-scripts
+      - name: Check Functions syntax
+        working-directory: apps/gimapp/functions
+        run: npm run lint
