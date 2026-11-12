@@ -22,7 +22,8 @@ exports.enrollClientInTurn = onCall({ region: 'southamerica-east1', enforceAppCh
   const requestRef = db.doc(`gyms/${gymId}/requests/${uid}`);
   const clientRef = db.doc(`gyms/${gymId}/clients/${uid}`);
   const enrollmentRef = db.doc(`gyms/${gymId}/turnEnrollments/${turnId}`);
-  const memberRef = enrollmentRef.collection('members').doc(uid);
+  const memberCollection = enrollmentRef.collection('members');
+  const memberRef = memberCollection.doc(uid);
   const publicCatalogRef = db.doc(`publicCatalog/${gymId}`);
 
   return db.runTransaction(async (tx) => {
@@ -48,7 +49,7 @@ exports.enrollClientInTurn = onCall({ region: 'southamerica-east1', enforceAppCh
     if (memberSnap.exists) throw new HttpsError('already-exists', 'Ya estás anotado en este turno.');
 
     const capacity = Math.max(0, Number(turn.capacity) || 0);
-    const enrolled = Math.max(0, Number(enrollmentSnap.exists ? enrollmentSnap.data().enrolled : 0) || 0);
+    const enrolled = Math.max(\n      memberList.size,\n      assignedClients.docs.filter(item => item.id !== uid || (item.data().assignedTurnIds || []).includes(turnId)).length,\n      Number(enrollmentSnap.exists ? enrollmentSnap.data().enrolled : 0) || 0,\n    );
     if (capacity <= enrolled) throw new HttpsError('resource-exhausted', 'Se ocuparon las vacantes de este turno. Actualizá los horarios.');
 
     const currentClient = clientSnap.data();
