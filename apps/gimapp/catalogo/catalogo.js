@@ -49,7 +49,7 @@ function portalContent(){
 async function refreshPublicCatalog(){publicCatalog=await loadPublicCatalog();}
 function showPortal(){if(!publicCatalog){alert(catalogLoadError||'No se pudo cargar el catálogo publicado.');return;}panel.classList.add('portal-mode');portalTab='turnos';paintPortal();}
 function paintPortal(){host.innerHTML=`<div class="portal-head"><div><span class="status pending">PORTAL DEL CLIENTE</span><h2>${escapeHtml(publicCatalog?.gymName||'Portal del cliente')}</h2></div><button class="text-link" data-portal="exit">Salir de la vista</button></div><p class="notice">Los horarios e inscripciones se guardan en Firebase. Lista de espera, ausencias, recuperaciones y pagos todavía no están habilitados.</p><nav class="portal-nav"><button class="button small primary" data-tab="turnos">Turnos</button></nav><div class="portal-content">${portalContent()}</div>`;decorateHelp(host);}
-host.addEventListener('click',e=>{
+host.addEventListener('click',async e=>{
  const help=e.target.closest('[data-help]');if(help){e.preventDefault();e.stopPropagation();showHelp(help.dataset.help);return;}
  const tab=e.target.closest('[data-tab]');if(tab){portalTab=tab.dataset.tab;paintPortal();return;}
  const button=e.target.closest('[data-portal]');if(!button)return;const action=button.dataset.portal;
