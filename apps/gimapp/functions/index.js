@@ -35,6 +35,7 @@ exports.registerClientProfile = onCall(options, async (request) => {
   const phone = required(request.data?.phone, 'el teléfono', 40);
   const birthDate = request.data?.birthDate;
   const privacyPolicyVersion = required(request.data?.privacyPolicyVersion, 'la versión de privacidad', 80);
+  if (request.data?.consentAccepted !== true) throw new HttpsError('failed-precondition', 'Tenés que aceptar la información de privacidad.');
   if (firstName.length < 2 || lastName.length < 2 || phone.length < 6 || !validAdult(birthDate)) {
     throw new HttpsError('invalid-argument', 'Completá los datos correctamente. El registro es para mayores de 18 años.');
   }
