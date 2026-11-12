@@ -1,14 +1,20 @@
 {
   "name": "gimapp-functions",
   "private": true,
-  "engines": { "node": "20" },
+  "engines": {
+    "node": "20"
+  },
   "main": "index.js",
   "scripts": {
     "lint": "node --check index.js && node --check test/emulator.integration.js",
-    "test:emulator": "node test/emulator.integration.js"
+    "test:emulator": "node test/emulator.integration.js && node test/security.rules.integration.js"
   },
   "dependencies": {
     "firebase-admin": "^13.0.2",
     "firebase-functions": "^6.3.2"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
+    "firebase": "^12.0.0"
   }
 }
