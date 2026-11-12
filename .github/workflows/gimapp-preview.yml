@@ -1,0 +1,33 @@
+name: GimAPP preview (Firebase Hosting)
+
+on:
+  push:
+    branches:
+      - feature/gimapp-privacidad-eliminacion
+    paths:
+      - 'apps/gimapp/catalogo/**'
+      - 'apps/gimapp/panel/**'
+      - 'apps/gimapp/config.js'
+      - 'apps/gimapp/index.html'
+      - 'apps/gimapp/firebase.json'
+      - '.github/workflows/gimapp-preview.yml'
+
+permissions:
+  contents: read
+  checks: write
+  id-token: write
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy isolated preview channel
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_GIMAPP_67719 }}'
+          projectId: gimapp-67719
+          entryPoint: apps/gimapp
+          channelId: gimapp-feature-preview
+          expires: 7d
