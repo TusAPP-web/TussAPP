@@ -1,6 +1,7 @@
 name: GimAPP preview (Firebase Hosting)
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - feature/gimapp-privacidad-eliminacion
