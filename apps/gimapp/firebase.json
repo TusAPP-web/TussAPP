@@ -9,7 +9,11 @@
       "**/.*",
       "**/node_modules/**",
       "**/*.md",
-      "firestore.rules"
+      "firestore.rules",
+      "functions/**"
     ]
+  },
+  "functions": {
+    "source": "functions"
   }
 }
