@@ -130,3 +130,104 @@ exports.enrollClientInTurn = onCall(options, async (request) => {
     return { success: true, turnId, enrolled: next, vacancies: capacity - next };
   });
 });
+
+
+exports.approveClientRequest = onCall(options, async (request) => {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Iniciá sesión.');
+  const gymId = required(request.data?.gymId, 'el gimnasio', 128);
+  const requestId = required(request.data?.requestId, 'la solicitud', 128);
+  if (!/^[A-Za-z0-9_-]+$/.test(gymId) || !/^[A-Za-z0-9_-]+$/.test(requestId)) {
+    throw new HttpsError('invalid-argument', 'Identificador inválido.');
+  }
+  const uid = request.auth.uid;
+  const gymRef = db.doc('gyms/' + gymId);
+  const teamRef = db.doc('gyms/' + gymId + '/team/' + uid);
+  const requestRef = db.doc('gyms/' + gymId + '/requests/' + requestId);
+  const catalogRef = db.doc('publicCatalog/' + gymId);
+  return db.runTransaction(async tx => {
+    const [gymSnap, teamSnap, requestSnap, catalogSnap] = await Promise.all([
+      tx.get(gymRef), tx.get(teamRef), tx.get(requestRef), tx.get(catalogRef),
+    ]);
+    const team = teamSnap.data();
+    if (!teamSnap.exists || team.active !== true || !['owner', 'complete'].includes(team.role)) {
+      throw new HttpsError('permission-denied', 'Solo el dueño o un administrador activo puede aprobar solicitudes.');
+    }
+    if (!gymSnap.exists || !requestSnap.exists || requestSnap.data().status !== 'pending') {
+      throw new HttpsError('failed-precondition', 'La solicitud ya no está pendiente.');
+    }
+    if (!catalogSnap.exists) throw new HttpsError('failed-precondition', 'No se encontró el catálogo del gimnasio.');
+    const pending = requestSnap.data();
+    const clientUid = required(pending.clientUid, 'el cliente', 128);
+    const clientRef = db.doc('gyms/' + gymId + '/clients/' + clientUid);
+    const clientSnap = await tx.get(clientRef);
+    if (clientSnap.exists) throw new HttpsError('already-exists', 'El cliente ya está registrado.');
+    const chosen = request.data?.assignedTurnIds;
+    const turnIds = [...new Set(Array.isArray(chosen) && chosen.length ? chosen : (pending.requestedTurnIds || []))];
+    if (turnIds.length > 20 || turnIds.some(id => typeof id !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(id))) {
+      throw new HttpsError('invalid-argument', 'La selección de turnos no es válida.');
+    }
+    const gym = gymSnap.data();
+    const catalog = catalogSnap.data();
+    const selected = turnIds.map(id => {
+      const turn = (gym.scheduleTurns || []).find(item => item.id === id);
+      if (!turn || !(catalog.turns || []).some(item => item.id === id)) {
+        throw new HttpsError('not-found', 'Uno de los turnos ya no está publicado.');
+      }
+      const capacity = Number(turn.capacity);
+      if (!Number.isInteger(capacity) || capacity < 1) throw new HttpsError('failed-precondition', 'El cupo de un turno no es válido.');
+      return { id, capacity };
+    });
+    const reads = await Promise.all(selected.map(async turn => {
+      const counterRef = db.doc('gyms/' + gymId + '/turnEnrollments/' + turn.id);
+      const memberRef = counterRef.collection('members').doc(clientUid);
+      const assignedQuery = db.collection('gyms/' + gymId + '/clients').where('assignedTurnIds', 'array-contains', turn.id);
+      const [counterSnap, memberSnap, assignedSnap] = await Promise.all([
+        tx.get(counterRef), tx.get(memberRef), tx.get(assignedQuery),
+      ]);
+      return { ...turn, counterRef, memberRef, counterSnap, memberSnap, assignedSnap };
+    }));
+    for (const item of reads) {
+      if (item.memberSnap.exists || item.assignedSnap.docs.some(doc => doc.id === clientUid)) {
+        throw new HttpsError('already-exists', 'El cliente ya figura en uno de los turnos seleccionados.');
+      }
+      const enrolled = Math.max(item.assignedSnap.size, Number(item.counterSnap.data()?.enrolled) || 0);
+      if (enrolled >= item.capacity) throw new HttpsError('resource-exhausted', 'No quedan vacantes en uno de los turnos seleccionados.');
+      item.next = enrolled + 1;
+    }
+    const displayId = 'CL-' + clientUid.slice(0, 8).toUpperCase();
+    tx.set(clientRef, {
+      clientUid, displayId, firstName: pending.firstName, lastName: pending.lastName,
+      phone: pending.phone, email: pending.email || null,
+      assignedTurnIds: turnIds, status: turnIds.length ? 'active' : 'registered',
+      joinedAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+    tx.update(requestRef, {
+      status: 'approved', clientId: displayId, reviewedBy: uid,
+      reviewedAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
+    });
+    tx.set(db.doc('gyms/' + gymId + '/audit/request-approved-' + requestId), {
+      type: 'request-approved', requestId, clientUid, actorUid: uid, createdAt: FieldValue.serverTimestamp(),
+    });
+    for (const item of reads) {
+      tx.create(item.memberRef, {
+        clientUid, turnId: item.id, status: 'active', enrolledAt: FieldValue.serverTimestamp(),
+      });
+      tx.set(item.counterRef, {
+        turnId: item.id, enrolled: item.next, capacity: item.capacity,
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+    }
+    if (reads.length) {
+      const nextById = new Map(reads.map(item => [item.id, item.next]));
+      tx.update(catalogRef, {
+        turns: (catalog.turns || []).map(turn => nextById.has(turn.id) ? { ...turn, enrolled: nextById.get(turn.id) } : turn),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      tx.update(gymRef, {
+        scheduleTurns: (gym.scheduleTurns || []).map(turn => nextById.has(turn.id) ? { ...turn, enrolled: nextById.get(turn.id) } : turn),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    }
+    return { clientId: displayId, assignedTurnIds: turnIds };
+  });
+});
