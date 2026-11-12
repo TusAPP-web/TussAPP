@@ -33,3 +33,5 @@ jobs:
       - name: Check Functions syntax
         working-directory: apps/gimapp/functions
         run: npm run lint
+      - name: Run Firebase Emulator integration tests
+        run: npx --yes firebase-tools@latest emulators:exec --project demo-gimapp --only auth,firestore,functions "npm --prefix functions run test:emulator"
