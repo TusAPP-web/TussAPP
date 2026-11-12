@@ -13,9 +13,9 @@ import {
   setDoc,
   updateDoc,
   where,
-  writeBatch,
 } from 'https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js';
 import { getFirebaseServices } from '../firebase.js';
+import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/13.1.0/firebase-functions.js';
 
 function cleanText(value) { return String(value || '').trim().replace(/\s+/g, ' '); }
 function gymDoc(db, gymId) { return doc(db, 'gyms', gymId); }
@@ -96,32 +96,11 @@ export async function updateGymProfile(gymId, values) {
   await updateDoc(gymDoc(db, gymId), { ...values, updatedAt: serverTimestamp() });
 }
 
-export async function approveRequest({ gymId, requestId, actorUid, assignedTurnIds = [] }) {
-  const { db } = await getFirebaseServices();
-  const requestRef = doc(db, 'gyms', gymId, 'requests', requestId);
-  const requestSnapshot = await getDoc(requestRef);
-  if (!requestSnapshot.exists()) throw new Error('La solicitud ya no existe.');
-  const request = requestSnapshot.data();
-  if (request.status !== 'pending') throw new Error('La solicitud ya fue atendida.');
-  const clientRef = doc(db, 'gyms', gymId, 'clients', request.clientUid);
-  const displayId = `CL-${request.clientUid.slice(0, 8).toUpperCase()}`;
-  const batch = writeBatch(db);
-  batch.set(clientRef, {
-    clientUid: request.clientUid,
-    displayId,
-    firstName: request.firstName,
-    lastName: request.lastName,
-    phone: request.phone,
-    email: request.email || null,
-    assignedTurnIds: Array.isArray(assignedTurnIds) && assignedTurnIds.length ? assignedTurnIds : request.requestedTurnIds,
-    status: 'active',
-    joinedAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  }, { merge: true });
-  batch.update(requestRef, { status: 'approved', clientId: displayId, reviewedBy: actorUid, reviewedAt: serverTimestamp(), updatedAt: serverTimestamp() });
-  batch.set(doc(db, 'gyms', gymId, 'audit', `request-approved-${requestId}`), { type: 'request-approved', requestId, clientUid: request.clientUid, actorUid, createdAt: serverTimestamp() });
-  await batch.commit();
-  return { clientId: displayId };
+export async function approveRequest({ gymId, requestId, assignedTurnIds = [] }) {
+  const { app } = await getFirebaseServices();
+  const approve = httpsCallable(getFunctions(app, 'southamerica-east1'), 'approveClientRequest');
+  const result = await approve({ gymId, requestId, assignedTurnIds });
+  return result.data;
 }
 
 export async function rejectRequest({ gymId, requestId, actorUid, message = '' }) {
