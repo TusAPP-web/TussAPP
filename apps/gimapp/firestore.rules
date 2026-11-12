@@ -62,7 +62,7 @@ service cloud.firestore {
         allow delete: if false;
       }
       match /requests/{requestId} {
-        allow create: if createsOwnClientData() && request.resource.data.status == 'pending';
+        allow create: if false; // Las altas de clientes se crean exclusivamente desde Cloud Functions.
         allow get, list: if clientIsSelf() || attendanceManager(gymId);
         allow update: if administrator(gymId);
         allow delete: if false;
