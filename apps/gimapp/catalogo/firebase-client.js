@@ -9,9 +9,10 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
 } from 'https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js';
-import { doc, getDoc, serverTimestamp, setDoc } from 'https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js';
+import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js';
 import { APP_CONFIG } from '../config.js';
 import { getFirebaseServices } from '../firebase.js';
+import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/13.1.0/firebase-functions.js';
 
 function text(value) { return String(value || '').trim().replace(/\s+/g, ' '); }
 function googleProvider() {
@@ -21,15 +22,6 @@ function googleProvider() {
 }
 export function catalogGymId() { return new URLSearchParams(window.location.search).get('gym') || ''; }
 
-function validateRegistration({ firstName, lastName, phone, birthDate, turnIds }) {
-  if (text(firstName).length < 2 || text(lastName).length < 2 || text(phone).length < 6) throw new Error('Completá nombre, apellido y teléfono.');
-  const birth = new Date(`${birthDate}T12:00:00`);
-  const adultLimit = new Date();
-  adultLimit.setFullYear(adultLimit.getFullYear() - 18);
-  if (!birthDate || Number.isNaN(birth.getTime()) || birth > adultLimit) throw new Error('GimAPP admite por ahora solo personas de 18 años o más.');
-  if (!Array.isArray(turnIds) || turnIds.length === 0) throw new Error('Elegí al menos un turno con vacante.');
-}
-
 export async function loadPublicCatalog(gymId = catalogGymId()) {
   if (!gymId) throw new Error('Falta identificar el gimnasio en el enlace del catálogo.');
   const { db } = await getFirebaseServices();
@@ -38,36 +30,43 @@ export async function loadPublicCatalog(gymId = catalogGymId()) {
   return { gymId, ...snapshot.data() };
 }
 
-async function saveInitialRequest({ user, gymId, firstName, lastName, phone, birthDate, turnIds, removeNewUserOnFailure }) {
-  validateRegistration({ firstName, lastName, phone, birthDate, turnIds });
+async function saveInitialRequest({ user, gymId, firstName, lastName, phone, birthDate, removeNewUserOnFailure }) {
   if (!APP_CONFIG.clientRegistrationEnabled || !APP_CONFIG.privacyPolicyVersion) throw new Error('El registro de clientes todavía no está habilitado.');
-  const { db } = await getFirebaseServices();
+  const { auth } = await getFirebaseServices();
   try {
-    await setDoc(doc(db, 'gyms', gymId, 'requests', user.uid), {
-      clientUid: user.uid, firstName: text(firstName), lastName: text(lastName), phone: text(phone), email: user.email || null,
-      birthDate, requestedTurnIds: [...new Set(turnIds)], status: 'pending', privacyPolicyVersion: APP_CONFIG.privacyPolicyVersion,
-      consentedAt: serverTimestamp(), createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
-    });
-    if (!user.emailVerified && user.email) await sendEmailVerification(user);
-    return { gymId, requestId: user.uid };
+    const fn = httpsCallable(getFunctions(auth.app, 'southamerica-east1'), 'registerClientProfile');
+    const result = await fn({ gymId, firstName, lastName, phone, birthDate, privacyPolicyVersion: APP_CONFIG.privacyPolicyVersion });
+    if (!user.emailVerified && user.email) await sendEmailVerification(user).catch(() => undefined);
+    return result.data;
   } catch (error) {
     if (removeNewUserOnFailure) await deleteUser(user).catch(() => undefined);
     throw error;
   }
 }
-
-export async function registerClientWithPassword({ gymId = catalogGymId(), firstName, lastName, phone, birthDate, turnIds, email, password }) {
-  if (!gymId) throw new Error('Falta identificar el gimnasio en el enlace del catálogo.');
+export async function registerClientWithPassword({ gymId = catalogGymId(), firstName, lastName, phone, birthDate, email, password }) {
+  if (!gymId) throw new Error('Falta identificar el gimnasio.');
+  if (!APP_CONFIG.clientRegistrationEnabled || !APP_CONFIG.privacyPolicyVersion) throw new Error('El registro de clientes todavía no está habilitado.');
   const { auth } = await getFirebaseServices();
   const credential = await createUserWithEmailAndPassword(auth, text(email), password);
-  return saveInitialRequest({ user: credential.user, gymId, firstName, lastName, phone, birthDate, turnIds, removeNewUserOnFailure: true });
+  return saveInitialRequest({ user: credential.user, gymId, firstName, lastName, phone, birthDate, removeNewUserOnFailure: true });
 }
-
-export async function registerClientWithGoogle({ gymId = catalogGymId(), firstName, lastName, phone, birthDate, turnIds }) {
-  if (!gymId) throw new Error('Falta identificar el gimnasio en el enlace del catálogo.');
+export async function registerClientWithGoogle({ gymId = catalogGymId(), firstName, lastName, phone, birthDate }) {
+  if (!gymId) throw new Error('Falta identificar el gimnasio.');
+  if (!APP_CONFIG.clientRegistrationEnabled || !APP_CONFIG.privacyPolicyVersion) throw new Error('El registro de clientes todavía no está habilitado.');
   const { auth } = await getFirebaseServices();
   const credential = await signInWithPopup(auth, googleProvider());
-  return saveInitialRequest({ user: credential.user, gymId, firstName, lastName, phone, birthDate, turnIds, removeNewUserOnFailure: getAdditionalUserInfo(credential)?.isNewUser === true });
+  return saveInitialRequest({ user: credential.user, gymId, firstName, lastName, phone, birthDate, removeNewUserOnFailure: getAdditionalUserInfo(credential)?.isNewUser === true });
+}
+export async function enrollClientInTurn({ gymId = catalogGymId(), turnId }) {
+  const { auth } = await getFirebaseServices();
+  return (await httpsCallable(getFunctions(auth.app, 'southamerica-east1'), 'enrollClientInTurn')({ gymId, turnId })).data;
+}
+export async function getMyClientProfile(gymId = catalogGymId()) {
+  const { auth, db } = await getFirebaseServices();
+  if (!auth.currentUser) throw new Error('Iniciá sesión.');
+  const snap = await getDoc(doc(db, 'gyms', gymId, 'clients', auth.currentUser.uid));
+  if (!snap.exists()) throw new Error('No hay un registro de cliente para esta cuenta en el gimnasio.');
+  return snap.data();
 }
 
 export async function signInClientWithPassword({ email, password }) {
