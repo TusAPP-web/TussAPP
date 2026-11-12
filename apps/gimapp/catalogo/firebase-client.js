@@ -35,7 +35,7 @@ async function saveInitialRequest({ user, gymId, firstName, lastName, phone, bir
   const { auth } = await getFirebaseServices();
   try {
     const fn = httpsCallable(getFunctions(auth.app, 'southamerica-east1'), 'registerClientProfile');
-    const result = await fn({ gymId, firstName, lastName, phone, birthDate, privacyPolicyVersion: APP_CONFIG.privacyPolicyVersion });
+    const result = await fn({ gymId, firstName, lastName, phone, birthDate, privacyPolicyVersion: APP_CONFIG.privacyPolicyVersion, consentAccepted: true });
     if (!user.emailVerified && user.email) await sendEmailVerification(user).catch(() => undefined);
     return result.data;
   } catch (error) {
