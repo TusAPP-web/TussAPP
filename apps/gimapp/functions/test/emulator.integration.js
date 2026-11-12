@@ -49,6 +49,7 @@ async function register(uidToken, gymId) {
   try {
     await seedGym('gym-test');
     await seedGym('gym-disabled', false);
+    await seedGym('gym-legacy', true);
 
     const userA = await authUser('a@example.test');
     const userB = await authUser('b@example.test');
@@ -82,6 +83,32 @@ async function register(uidToken, gymId) {
     const assigned = await db.collection('gyms/gym-test/clients').where('assignedTurnIds', 'array-contains', 'turn-1').get();
     assert.equal(assigned.size, 1);
 
+    const legacyClient = await authUser('legacy-client@example.test');
+    const owner = await authUser('owner@example.test');
+    await db.doc('gyms/gym-legacy/team/' + owner.localId).set({
+      uid: owner.localId, role: 'owner', active: true,
+    });
+    await db.doc('gyms/gym-legacy/requests/' + legacyClient.localId).set({
+      clientUid: legacyClient.localId, firstName: 'Legado', lastName: 'Prueba',
+      phone: '3755123456', email: 'legacy-client@example.test',
+      requestedTurnIds: ['turn-1'], status: 'pending',
+    });
+    const forbiddenApproval = await call('approveClientRequest', userA.idToken, {
+      gymId: 'gym-legacy', requestId: legacyClient.localId,
+    });
+    assert.equal(forbiddenApproval.body.error?.status, 'PERMISSION_DENIED', JSON.stringify(forbiddenApproval.body));
+    const approval = await call('approveClientRequest', owner.idToken, {
+      gymId: 'gym-legacy', requestId: legacyClient.localId,
+    });
+    assert.equal(approval.status, 200, JSON.stringify(approval.body));
+    assert.deepEqual(approval.body.result?.assignedTurnIds, ['turn-1']);
+    const legacyCounter = await db.doc('gyms/gym-legacy/turnEnrollments/turn-1').get();
+    assert.equal(legacyCounter.data()?.enrolled, 1);
+    const legacyMembership = await db.doc('gyms/gym-legacy/turnEnrollments/turn-1/members/' + legacyClient.localId).get();
+    assert.equal(legacyMembership.exists, true);
+    const legacyRequest = await db.doc('gyms/gym-legacy/requests/' + legacyClient.localId).get();
+    assert.equal(legacyRequest.data()?.status, 'approved');
+
     const disabledUser = await authUser('disabled@example.test');
     const disabled = await register(disabledUser.idToken, 'gym-disabled');
     assert.equal(disabled.body.error?.status, 'FAILED_PRECONDITION', JSON.stringify(disabled.body));
@@ -89,7 +116,7 @@ async function register(uidToken, gymId) {
     const invalidId = await call('enrollClientInTurn', winner.idToken, { gymId: '../bad', turnId: 'turn-1' });
     assert.equal(invalidId.body.error?.status, 'INVALID_ARGUMENT', JSON.stringify(invalidId.body));
 
-    console.log('PASS: registro, rechazo cuando está deshabilitado, inscripción concurrente con cupo 1, contador, membresía, asignación e idempotencia.');
+    console.log('PASS: registro, altas deshabilitadas, inscripción concurrente/cupo único, contador, membresía, idempotencia y aprobación legacy autorizada con cupos transaccionales.');
   } finally {
     await deleteApp(app);
   }
