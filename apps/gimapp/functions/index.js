@@ -29,7 +29,8 @@ function refs(gymId, uid) {
 
 exports.registerClientProfile = onCall(options, async (request) => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'Iniciá sesión.');
-  const gymId = required(request.data?.gymId, 'el gimnasio');
+  const gymId = required(request.data?.gymId, 'el gimnasio', 128);
+  if (!/^[A-Za-z0-9_-]+$/.test(gymId)) throw new HttpsError('invalid-argument', 'Identificador de gimnasio inválido.');
   const firstName = required(request.data?.firstName, 'el nombre');
   const lastName = required(request.data?.lastName, 'el apellido');
   const phone = required(request.data?.phone, 'el teléfono', 40);
@@ -78,8 +79,8 @@ exports.registerClientProfile = onCall(options, async (request) => {
 exports.enrollClientInTurn = onCall(options, async (request) => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'Iniciá sesión para anotarte.');
   const gymId = required(request.data?.gymId, 'el gimnasio');
-  const turnId = required(request.data?.turnId, 'el turno');
-  if (gymId.includes('/') || turnId.includes('/')) throw new HttpsError('invalid-argument', 'Identificador inválido.');
+  const turnId = required(request.data?.turnId, 'el turno', 128);
+  if (!/^[A-Za-z0-9_-]+$/.test(gymId) || !/^[A-Za-z0-9_-]+$/.test(turnId)) throw new HttpsError('invalid-argument', 'Identificador inválido.');
   const uid = request.auth.uid;
   const r = refs(gymId, uid);
   const enrollment = db.doc('gyms/' + gymId + '/turnEnrollments/' + turnId);
