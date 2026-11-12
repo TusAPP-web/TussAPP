@@ -121,6 +121,10 @@ exports.enrollClientInTurn = onCall(options, async (request) => {
       turns: catalog.data().turns.map(t => t.id === turnId ? { ...t, enrolled: next } : t),
       updatedAt: FieldValue.serverTimestamp(),
     });
+    tx.update(r.gym, {
+      scheduleTurns: (gym.data().scheduleTurns || []).map(t => t.id === turnId ? { ...t, enrolled: next } : t),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
     return { success: true, turnId, enrolled: next, vacancies: capacity - next };
   });
 });
