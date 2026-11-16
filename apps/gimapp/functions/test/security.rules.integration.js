@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { initializeTestEnvironment, assertSucceeds, assertFails } = require('@firebase/rules-unit-testing');
-const { doc, getDoc, setDoc, updateDoc } = require('firebase/firestore');
+const { doc, getDoc, setDoc, updateDoc, Timestamp } = require('firebase/firestore');
 
 (async () => {
   const env = await initializeTestEnvironment({
@@ -26,6 +26,16 @@ const { doc, getDoc, setDoc, updateDoc } = require('firebase/firestore');
       await setDoc(doc(db, 'gyms/gym-pro'), {
         ownerUid: 'owner-pro', status: 'active', plan: 'pro', name: 'Gimnasio Pro',
       });
+      await setDoc(doc(db, 'gyms/gym-expired'), {
+        ownerUid: 'owner-expired', status: 'active', plan: 'gold',
+        planSource: 'manual', planExpiresAt: Timestamp.fromMillis(Date.now() - 60_000),
+      });
+      await setDoc(doc(db, 'gyms/gym-expired/team/owner-expired'), {
+        uid: 'owner-expired', role: 'owner', active: true,
+      });
+      await setDoc(doc(db, 'gyms/gym-expired/cash/cash-expired'), {
+        type: 'income', amount: 100,
+      });
       await setDoc(doc(db, 'gyms/gym-rules/cash/cash-free'), {
         type: 'income', amount: 100,
       });
@@ -45,6 +55,7 @@ const { doc, getDoc, setDoc, updateDoc } = require('firebase/firestore');
     const anonymousDb = env.unauthenticatedContext().firestore();
     const ownerDb = env.authenticatedContext('owner-a').firestore();
     const proOwnerDb = env.authenticatedContext('owner-pro').firestore();
+    const expiredOwnerDb = env.authenticatedContext('owner-expired').firestore();
 
     await assertSucceeds(getDoc(doc(clientDb, 'gyms/gym-rules/clients/client-a')));
     await assertFails(getDoc(doc(otherDb, 'gyms/gym-rules/clients/client-a')));
@@ -62,6 +73,7 @@ const { doc, getDoc, setDoc, updateDoc } = require('firebase/firestore');
     await assertSucceeds(getDoc(doc(ownerDb, 'gyms/gym-rules/clients/client-a')));
     await assertFails(getDoc(doc(ownerDb, 'gyms/gym-rules/cash/cash-free')));
     await assertSucceeds(getDoc(doc(proOwnerDb, 'gyms/gym-pro/cash/cash-pro')));
+    await assertFails(getDoc(doc(expiredOwnerDb, 'gyms/gym-expired/cash/cash-expired')));
     await assertFails(setDoc(doc(ownerDb, 'gyms/gym-rules/planRequests/direct'), {
       requestedPlan: 'pro', status: 'pending',
     }));
