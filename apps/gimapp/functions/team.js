@@ -149,6 +149,7 @@ exports.acceptTeamInvitation = onCall(options, async request => {
     if (!planIsActive(gym)) {
       throw new HttpsError('failed-precondition', 'El plan Pro o Gold del gimnasio no está activo.');
     }
+    validatePlanPermissions(gym, invite.permissions || {});
     if (memberSnap.exists && memberSnap.data().active === true) {
       throw new HttpsError('already-exists', 'Esta cuenta ya forma parte del equipo.');
     }
