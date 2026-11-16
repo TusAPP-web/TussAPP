@@ -134,3 +134,24 @@ export async function savePublicCatalog({ gymId, gymName, turns, published }) {
   }));
   await setDoc(doc(db, 'publicCatalog', gymId), { gymName: cleanText(gymName), turns: publicTurns, published: Boolean(published), updatedAt: serverTimestamp() }, { merge: true });
 }
+
+
+export async function getPlanRequests(gymId) {
+  const { db } = await getFirebaseServices();
+  const snapshot = await getDocs(query(
+    collection(db, 'gyms', gymId, 'planRequests'),
+    orderBy('createdAt', 'desc'),
+    limit(10),
+  ));
+  return snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+}
+
+export async function requestPlanChange({ gymId, requestedPlan }) {
+  if (!['pro', 'gold'].includes(requestedPlan)) {
+    throw new Error('Seleccioná un plan válido.');
+  }
+  const { app } = await getFirebaseServices();
+  const submit = httpsCallable(getFunctions(app, 'southamerica-east1'), 'requestPlanChange');
+  const result = await submit({ gymId, requestedPlan });
+  return result.data;
+}
