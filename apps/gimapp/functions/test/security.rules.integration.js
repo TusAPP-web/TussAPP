@@ -35,6 +35,17 @@ const { doc, getDoc, setDoc, updateDoc, Timestamp } = require('firebase/firestor
       await setDoc(doc(db, 'publicCatalog/gym-staff'), {
         published: false, gymName: 'Gimnasio privado', turns: [{ id: 'turn-private' }],
       });
+      await setDoc(doc(db, 'gyms/gym-gold'), {
+        ownerUid: 'owner-gold', status: 'active', plan: 'gold', name: 'Gimnasio Gold',
+      });
+      await setDoc(doc(db, 'gyms/gym-gold/team/staff-gold'), {
+        uid: 'staff-gold', role: 'staff', active: true,
+        permissions: { viewClients: true, takeAttendance: true },
+        assignedTurnIds: ['turn-allowed'],
+      });
+      await setDoc(doc(db, 'gyms/gym-gold/clients/client-gold'), {
+        clientUid: 'client-gold', firstName: 'Cliente', assignedTurnIds: ['turn-allowed'],
+      });
 
       await setDoc(doc(db, 'gyms/gym-pro'), {
         ownerUid: 'owner-pro', status: 'active', plan: 'pro', name: 'Gimnasio Pro',
@@ -71,6 +82,7 @@ const { doc, getDoc, setDoc, updateDoc, Timestamp } = require('firebase/firestor
     const proStaffDb = env.authenticatedContext('staff-pro').firestore();
     const basicStaffDb = env.authenticatedContext('staff-basic').firestore();
     const expiredOwnerDb = env.authenticatedContext('owner-expired').firestore();
+    const goldStaffDb = env.authenticatedContext('staff-gold').firestore();
 
     await assertSucceeds(getDoc(doc(clientDb, 'gyms/gym-rules/clients/client-a')));
     await assertFails(getDoc(doc(otherDb, 'gyms/gym-rules/clients/client-a')));
@@ -92,6 +104,18 @@ const { doc, getDoc, setDoc, updateDoc, Timestamp } = require('firebase/firestor
     await assertSucceeds(getDoc(doc(basicStaffDb, 'gyms/gym-staff')));
     await assertSucceeds(getDoc(doc(basicStaffDb, 'publicCatalog/gym-staff')));
     await assertFails(getDoc(doc(basicStaffDb, 'gyms/gym-staff/clients/client-a')));
+    await assertSucceeds(getDoc(doc(goldStaffDb, 'gyms/gym-gold/clients/client-gold')));
+    await assertSucceeds(setDoc(doc(goldStaffDb, 'gyms/gym-gold/attendance/allowed'), {
+      trainerUid: 'staff-gold', clientUid: 'client-gold', turnId: 'turn-allowed',
+      date: '2026-11-15', status: 'present',
+    }));
+    await assertFails(setDoc(doc(goldStaffDb, 'gyms/gym-gold/attendance/not-assigned'), {
+      trainerUid: 'staff-gold', clientUid: 'client-gold', turnId: 'turn-other',
+      date: '2026-11-15', status: 'present',
+    }));
+    await assertFails(setDoc(doc(goldStaffDb, 'gyms/gym-gold/team/forged-owner'), {
+      uid: 'forged-owner', role: 'owner', active: true,
+    }));
     await assertFails(getDoc(doc(expiredOwnerDb, 'gyms/gym-expired/cash/cash-expired')));
     await env.withSecurityRulesDisabled(async context => {
       const retainedCash = await getDoc(doc(context.firestore(), 'gyms/gym-expired/cash/cash-expired'));
