@@ -21,10 +21,7 @@ function cleanText(value) { return String(value || '').trim().replace(/\s+/g, ' 
 function gymDoc(db, gymId) { return doc(db, 'gyms', gymId); }
 
 export async function getGymProfile(gymId) {
-  const { db } = await getFirebaseServices();
-  const snapshot = await getDoc(gymDoc(db, gymId));
-  if (!snapshot.exists()) throw new Error('No se encontró el gimnasio de esta cuenta.');
-  return { id: snapshot.id, ...snapshot.data() };
+  return (await getGymWorkspace(gymId)).gym;
 }
 
 export async function getPendingRequests(gymId) {
@@ -51,18 +48,7 @@ export async function getCashEntries(gymId) {
 }
 
 export async function getCatalogConfiguration(gymId) {
-  const { db } = await getFirebaseServices();
-  const [gymSnapshot, catalogSnapshot] = await Promise.all([
-    getDoc(gymDoc(db, gymId)),
-    getDoc(doc(db, 'publicCatalog', gymId)),
-  ]);
-  const catalog = catalogSnapshot.exists() ? catalogSnapshot.data() : { gymName: '', turns: [], published: false };
-  const gym = gymSnapshot.exists() ? gymSnapshot.data() : {};
-  return {
-    ...catalog,
-    turns: Array.isArray(gym.scheduleTurns) ? gym.scheduleTurns : (Array.isArray(catalog.turns) ? catalog.turns : []),
-    allowScheduleOverlaps: gym.allowScheduleOverlaps === true,
-  };
+  return (await getGymWorkspace(gymId)).catalog;
 }
 
 export async function saveGymSchedule({ gymId, turns, allowScheduleOverlaps, gymName, published }) {
@@ -178,4 +164,8 @@ export async function revokeTeamInvitation(values) {
 }
 export async function deactivateTeamMember(values) {
   return callTeamFunction('deactivateTeamMember', values);
+}
+
+export async function getGymWorkspace(gymId) {
+  return callTeamFunction('getGymWorkspace', { gymId });
 }
