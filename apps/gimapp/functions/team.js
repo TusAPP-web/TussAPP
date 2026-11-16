@@ -134,6 +134,11 @@ exports.getGymWorkspace = onCall(options, async request => {
       absenceNoticeHours: Number(gym.absenceNoticeHours || 12),
       allowScheduleOverlaps: gym.allowScheduleOverlaps === true,
     },
+    membership: {
+      gymId, uid, role: member.role || 'staff',
+      permissions: member.permissions && typeof member.permissions === 'object' ? member.permissions : null,
+      assignedTurnIds: Array.isArray(member.assignedTurnIds) ? member.assignedTurnIds : [],
+    },
     catalog: {
       gymName: catalog.gymName || gym.name || '',
       turns: visibleTurns,
