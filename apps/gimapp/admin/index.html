@@ -38,6 +38,16 @@
           <button class="button primary" type="submit">Habilitar plan gratuitamente</button>
         </form>
       </section>
+      <section class="manual-grant card">
+        <h2>Modificar vencimiento de una habilitación manual</h2>
+        <p>Permite cambiar la fecha de una habilitación Pro o Gold ya concedida manualmente. Dejá la fecha vacía para que quede indefinida.</p>
+        <form id="manual-expiry-form">
+          <label>ID del gimnasio<input name="gymId" required maxlength="128" placeholder="Identificador exacto del gimnasio"></label>
+          <label>Nuevo vencimiento<input name="expiresAt" type="datetime-local"></label>
+          <label class="wide-field">Motivo del cambio<textarea name="reason" required maxlength="500" rows="2" placeholder="Ej. Se extiende el período de prueba"></textarea></label>
+          <button class="button primary" type="submit">Guardar nuevo vencimiento</button>
+        </form>
+      </section>
       <h2 class="section-title">Solicitudes de migración pendientes</h2>
       <div id="requests" class="request-list"><div class="empty">Cargando solicitudes…</div></div>
     </section>
