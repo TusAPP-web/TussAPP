@@ -2,6 +2,7 @@ const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { getFirestore, FieldValue, Timestamp } = require('firebase-admin/firestore');
 
 const db = getFirestore();
+// Employee membership mutations are server-only; Firestore rules deny direct team writes.
 const options = { region: 'southamerica-east1' };
 const permissionKeys = [
   'viewSchedule', 'viewClients', 'viewRequests', 'approveRequests',
