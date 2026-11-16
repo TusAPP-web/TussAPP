@@ -26,6 +26,14 @@ const { doc, getDoc, setDoc, updateDoc, Timestamp } = require('firebase/firestor
       await setDoc(doc(db, 'gyms/gym-pro/team/staff-pro'), {
         uid: 'staff-pro', role: 'intermediate', active: true,
       });
+      await setDoc(doc(db, 'gyms/gym-pro/team/staff-cash-pro'), {
+        uid: 'staff-cash-pro', role: 'staff', active: true,
+        permissions: { manageCash: true },
+      });
+      await setDoc(doc(db, 'gyms/gym-pro/team/staff-gold-manager'), {
+        uid: 'staff-gold-manager', role: 'staff', active: true,
+        permissions: { manageSchedule: true, manageCatalog: true },
+      });
       await setDoc(doc(db, 'gyms/gym-staff'), {
         ownerUid: 'owner-staff', status: 'active', plan: 'free', name: 'Gimnasio privado',
       });
@@ -80,6 +88,8 @@ const { doc, getDoc, setDoc, updateDoc, Timestamp } = require('firebase/firestor
     const ownerDb = env.authenticatedContext('owner-a').firestore();
     const proOwnerDb = env.authenticatedContext('owner-pro').firestore();
     const proStaffDb = env.authenticatedContext('staff-pro').firestore();
+    const proCashStaffDb = env.authenticatedContext('staff-cash-pro').firestore();
+    const proGoldManagerDb = env.authenticatedContext('staff-gold-manager').firestore();
     const basicStaffDb = env.authenticatedContext('staff-basic').firestore();
     const expiredOwnerDb = env.authenticatedContext('owner-expired').firestore();
     const goldStaffDb = env.authenticatedContext('staff-gold').firestore();
@@ -102,6 +112,8 @@ const { doc, getDoc, setDoc, updateDoc, Timestamp } = require('firebase/firestor
     await assertSucceeds(getDoc(doc(proOwnerDb, 'gyms/gym-pro/cash/cash-pro')));
     await assertSucceeds(updateDoc(doc(proOwnerDb, 'gyms/gym-pro'), { name: 'Gimnasio Pro actualizado' }));
     await assertFails(getDoc(doc(proStaffDb, 'gyms/gym-pro/cash/cash-pro')));
+    await assertSucceeds(getDoc(doc(proCashStaffDb, 'gyms/gym-pro/cash/cash-pro')));
+    await assertFails(updateDoc(doc(proGoldManagerDb, 'gyms/gym-pro'), { name: 'Cambio no autorizado en Pro' }));
     await assertSucceeds(getDoc(doc(basicStaffDb, 'gyms/gym-staff')));
     await assertSucceeds(getDoc(doc(basicStaffDb, 'publicCatalog/gym-staff')));
     await assertFails(getDoc(doc(basicStaffDb, 'gyms/gym-staff/clients/client-a')));
