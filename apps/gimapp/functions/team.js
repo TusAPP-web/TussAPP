@@ -123,6 +123,33 @@ exports.getGymWorkspace = onCall(options, async request => {
   const visibleTurns = !canViewSchedule ? []
     : canManageAllTurns ? allTurns
     : allTurns.filter(turn => assigned.includes(turn.id));
+  const canViewAllClients = member.role === 'owner' ||
+    memberHasPermission(member, gym, 'viewClients') || memberHasPermission(member, gym, 'manageClients');
+  const canTakeAttendance = memberHasPermission(member, gym, 'takeAttendance');
+  let clients = [];
+  if (canViewAllClients) {
+    const snapshot = await db.collection('gyms/' + gymId + '/clients').limit(500).get();
+    clients = snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+  } else if (canTakeAttendance && assigned.length) {
+    const unique = new Map();
+    for (let index = 0; index < assigned.length; index += 30) {
+      const group = assigned.slice(index, index + 30);
+      const snapshot = await db.collection('gyms/' + gymId + '/clients')
+        .where('assignedTurnIds', 'array-contains-any', group).limit(500).get();
+      snapshot.docs.forEach(item => {
+        const data = item.data();
+        unique.set(item.id, {
+          id: item.id,
+          displayId: data.displayId || item.id,
+          firstName: data.firstName || '',
+          lastName: data.lastName || '',
+          status: data.status || '',
+          assignedTurnIds: Array.isArray(data.assignedTurnIds) ? data.assignedTurnIds : [],
+        });
+      });
+    }
+    clients = [...unique.values()];
+  }
   const planExpiresAt = gym.planExpiresAt?.toDate?.().toISOString() || null;
   return {
     gym: {
@@ -135,6 +162,7 @@ exports.getGymWorkspace = onCall(options, async request => {
       absenceNoticeHours: Number(gym.absenceNoticeHours || 12),
       allowScheduleOverlaps: gym.allowScheduleOverlaps === true,
     },
+    clients,
     membership: {
       gymId, uid, role: member.role || 'staff',
       permissions: member.permissions && typeof member.permissions === 'object' ? member.permissions : null,
