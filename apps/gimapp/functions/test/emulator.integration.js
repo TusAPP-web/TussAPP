@@ -327,7 +327,7 @@ async function register(uidToken, gymId) {
     });
     await db.doc('gyms/gym-team-gold/clients/client-turn-gold').set({
       clientUid: 'client-turn-gold', firstName: 'Asignado', lastName: 'Gold',
-      assignedTurnIds: ['turn-gold'], status: 'active', phone: '3755000000',
+      assignedTurnIds: ['turn-gold', 'turn-other'], status: 'active', phone: '3755000000',
     });
     await db.doc('gyms/gym-team-gold/clients/client-other-turn').set({
       clientUid: 'client-other-turn', firstName: 'No', lastName: 'Asignado',
@@ -336,10 +336,14 @@ async function register(uidToken, gymId) {
     const attendanceWorkspace = await call('getGymWorkspace', attendanceStaff.idToken, { gymId: 'gym-team-gold' });
     assert.equal(attendanceWorkspace.status, 200, JSON.stringify(attendanceWorkspace.body));
     assert.deepEqual(attendanceWorkspace.body.result?.clients?.map(client => client.id), ['client-turn-gold']);
+    assert.equal(attendanceWorkspace.body.result.clients[0].clientUid, 'client-turn-gold',
+      'La lista de asistencia incluye el identificador que usa el registro de asistencia.');
+    assert.deepEqual(attendanceWorkspace.body.result.clients[0].assignedTurnIds, ['turn-gold'],
+      'La lista de asistencia solo incluye turnos asignados al empleado.');
     assert.equal('phone' in attendanceWorkspace.body.result.clients[0], false, 'El rol de asistencia no recibe datos de contacto.');
     assert.deepEqual(Object.keys(attendanceWorkspace.body.result.clients[0]).sort(),
-      ['id', 'displayId', 'firstName', 'lastName', 'status', 'assignedTurnIds'].sort(),
-      'El rol de asistencia solo recibe los campos mínimos autorizados.');
+      ['id', 'clientUid', 'displayId', 'firstName', 'lastName', 'status', 'assignedTurnIds'].sort(),
+      'El rol de asistencia solo recibe los campos necesarios para identificar y marcar asistencia.');
     for (let i = 1; i <= 5; i++) {
       const goldInvite = await call('createTeamInvitation', teamGoldOwner.idToken, {
         gymId: 'gym-team-gold', name: 'Gold ' + i, email: 'gold-' + i + '@example.test',
