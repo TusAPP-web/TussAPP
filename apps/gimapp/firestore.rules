@@ -23,7 +23,7 @@ service cloud.firestore {
         teamRecord(gymId).data.role == 'owner' ||
         (!('permissions' in teamRecord(gymId).data) && teamRecord(gymId).data.role == 'complete') ||
         ((!goldOnly || (gym.plan == 'gold' && paidPlan(gymId))) && (
-          (('permissions' in teamRecord(gymId).data) && teamRecord(gymId).data.permissions[permission] == true) ||
+          (('permissions' in teamRecord(gymId).data) && (permission in teamRecord(gymId).data.permissions) && teamRecord(gymId).data.permissions[permission] == true) ||
           (!('permissions' in teamRecord(gymId).data) && (
             (teamRecord(gymId).data.role == 'intermediate' && permission in ['viewSchedule', 'viewClients', 'viewRequests', 'takeAttendance']) ||
             (teamRecord(gymId).data.role == 'basic' && permission in ['viewSchedule'])
