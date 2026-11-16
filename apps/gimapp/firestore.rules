@@ -126,8 +126,8 @@ service cloud.firestore {
         allow delete: if administrator(gymId);
       }
       match /cash/{entryId} { allow read, create, update: if hasPermission(gymId, 'manageCash') && paidPlan(gymId); allow delete: if false; }
-      match /weeklySchedule/{entryId} { allow read: if hasPermission(gymId, 'viewSchedule'); allow write: if hasPermission(gymId, 'manageSchedule'); }
-      match /exceptions/{entryId} { allow read: if hasPermission(gymId, 'viewSchedule'); allow write: if hasPermission(gymId, 'manageSchedule'); }
+      match /weeklySchedule/{entryId} { allow read: if hasPermission(gymId, 'manageSchedule') || attendanceAdministrator(gymId); allow write: if hasPermission(gymId, 'manageSchedule'); }
+      match /exceptions/{entryId} { allow read: if hasPermission(gymId, 'manageSchedule') || attendanceAdministrator(gymId); allow write: if hasPermission(gymId, 'manageSchedule'); }
       match /planRequests/{requestId} {
         allow get, list: if activeMember(gymId) && teamRecord(gymId).data.role == 'owner';
         allow create, update, delete: if false;
