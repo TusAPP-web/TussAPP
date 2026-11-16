@@ -320,6 +320,23 @@ async function register(uidToken, gymId) {
       uid: teamGoldOwner.localId, name: 'Dueño Gold', email: 'team-gold-owner@example.test',
       role: 'owner', active: true, createdAt: FieldValue.serverTimestamp(),
     });
+    const attendanceStaff = await authUser('gold-attendance-only@example.test');
+    await db.doc('gyms/gym-team-gold/team/' + attendanceStaff.localId).set({
+      uid: attendanceStaff.localId, name: 'Asistencia', role: 'staff', active: true,
+      permissions: { takeAttendance: true }, assignedTurnIds: ['turn-gold'],
+    });
+    await db.doc('gyms/gym-team-gold/clients/client-turn-gold').set({
+      clientUid: 'client-turn-gold', firstName: 'Asignado', lastName: 'Gold',
+      assignedTurnIds: ['turn-gold'], status: 'active', phone: '3755000000',
+    });
+    await db.doc('gyms/gym-team-gold/clients/client-other-turn').set({
+      clientUid: 'client-other-turn', firstName: 'No', lastName: 'Asignado',
+      assignedTurnIds: ['turn-other'], status: 'active', phone: '3755111111',
+    });
+    const attendanceWorkspace = await call('getGymWorkspace', attendanceStaff.idToken, { gymId: 'gym-team-gold' });
+    assert.equal(attendanceWorkspace.status, 200, JSON.stringify(attendanceWorkspace.body));
+    assert.deepEqual(attendanceWorkspace.body.result?.clients?.map(client => client.id), ['client-turn-gold']);
+    assert.equal('phone' in attendanceWorkspace.body.result.clients[0], false, 'El rol de asistencia no recibe datos de contacto.');
     for (let i = 1; i <= 5; i++) {
       const goldInvite = await call('createTeamInvitation', teamGoldOwner.idToken, {
         gymId: 'gym-team-gold', name: 'Gold ' + i, email: 'gold-' + i + '@example.test',
