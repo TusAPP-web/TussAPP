@@ -151,3 +151,9 @@ export async function acceptTeamInvitation({ gymId, invitationId }) {
   const result = await accept({ gymId, invitationId });
   return result.data;
 }
+
+export async function resendTeamInvitationVerification() {
+  const { auth } = await getFirebaseServices();
+  if (!auth.currentUser) throw new Error('Primero ingresá con tu cuenta.');
+  await sendEmailVerification(auth.currentUser);
+}
