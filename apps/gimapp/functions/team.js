@@ -269,9 +269,21 @@ exports.listTeam = onCall(options, async request => {
     ]);
     return {
       plan: gym.plan || 'free',
-      members: members.docs.map(item => ({ uid: item.id, ...item.data() })),
+      members: members.docs.map(item => {
+        const data = item.data();
+        return {
+          uid: item.id, name: data.name || '', email: data.email || '',
+          role: data.role || '', active: data.active === true,
+          permissions: data.permissions || {},
+          assignedTurnIds: Array.isArray(data.assignedTurnIds) ? data.assignedTurnIds : [],
+          createdAt: data.createdAt?.toDate?.().toISOString() || null,
+        };
+      }),
       invitations: invitations.docs.filter(item => item.data().expiresAt?.toMillis?.() > Date.now())
-        .map(item => ({ id: item.id, ...item.data(), expiresAt: item.data().expiresAt.toDate().toISOString() })),
+        .map(item => ({
+          id: item.id, email: item.data().email || '',
+          expiresAt: item.data().expiresAt.toDate().toISOString(),
+        })),
     };
   });
 });
