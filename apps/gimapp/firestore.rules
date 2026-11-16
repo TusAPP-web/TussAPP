@@ -10,8 +10,19 @@ service cloud.firestore {
       return gym.plan in ['pro', 'gold']
         && (!('planExpiresAt' in gym) || gym.planExpiresAt == null || gym.planExpiresAt > request.time);
     }
-    function administrator(gymId) { return activeMember(gymId) && teamRecord(gymId).data.role in ['owner', 'complete']; }
-    function attendanceManager(gymId) { return activeMember(gymId) && teamRecord(gymId).data.role in ['owner', 'complete', 'intermediate']; }
+    function hasPermission(gymId, permission) {
+      return activeMember(gymId) && (
+        teamRecord(gymId).data.role == 'owner' ||
+        (('permissions' in teamRecord(gymId).data) && teamRecord(gymId).data.permissions[permission] == true) ||
+        (!('permissions' in teamRecord(gymId).data) && (
+          teamRecord(gymId).data.role == 'complete' ||
+          (teamRecord(gymId).data.role == 'intermediate' && permission in ['viewSchedule', 'viewClients', 'viewRequests', 'takeAttendance']) ||
+          (teamRecord(gymId).data.role == 'basic' && permission in ['viewSchedule'])
+        ))
+      );
+    }
+    function administrator(gymId) { return hasPermission(gymId, 'manageSchedule') || (activeMember(gymId) && teamRecord(gymId).data.role == 'complete' && !('permissions' in teamRecord(gymId).data)); }
+    function attendanceManager(gymId) { return hasPermission(gymId, 'takeAttendance'); }
     function clientIsSelf() { return signedIn() && resource.data.clientUid == request.auth.uid; }
     function createsOwnClientData() { return signedIn() && request.resource.data.clientUid == request.auth.uid; }
 
@@ -48,11 +59,11 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'absenceNoticeHours', 'scheduleTurns', 'allowScheduleOverlaps', 'updatedAt']);
       allow delete: if false;
       match /team/{userUid} {
-        allow get, list: if signedIn() && (resource.data.uid == request.auth.uid || administrator(gymId));
+        allow get, list: if signedIn() && (resource.data.uid == request.auth.uid || (activeMember(gymId) && teamRecord(gymId).data.role == 'owner'));
         allow create: if signedIn()
           && request.resource.data.uid == userUid
           && request.resource.data.keys().hasOnly(['uid', 'name', 'email', 'role', 'active', 'createdAt'])
-          && request.resource.data.role in ['owner', 'complete', 'intermediate', 'basic']
+          && request.resource.data.role in ['owner', 'complete', 'intermediate', 'basic', 'staff']
           && request.resource.data.active is bool
           && (administrator(gymId) || (userUid == request.auth.uid
             && request.resource.data.role == 'owner'
@@ -61,32 +72,38 @@ service cloud.firestore {
         allow update, delete: if administrator(gymId);
       }
       match /clients/{clientUid} {
-        allow get: if clientIsSelf() || attendanceManager(gymId);
-        allow list: if attendanceManager(gymId);
-        allow create, update: if administrator(gymId);
+        allow get: if clientIsSelf() || hasPermission(gymId, 'viewClients');
+        allow list: if hasPermission(gymId, 'viewClients');
+        allow create, update: if hasPermission(gymId, 'manageClients');
         allow delete: if false;
       }
       match /requests/{requestId} {
         allow create: if false; // Las altas de clientes se crean exclusivamente desde Cloud Functions.
-        allow get, list: if clientIsSelf() || attendanceManager(gymId);
-        allow update: if administrator(gymId);
+        allow get, list: if clientIsSelf() || hasPermission(gymId, 'viewRequests') || hasPermission(gymId, 'approveRequests');
+        allow update: if hasPermission(gymId, 'approveRequests');
         allow delete: if false;
       }
       match /waitlist/{entryId} {
         allow create: if createsOwnClientData() && request.resource.data.status == 'pending';
-        allow get, list: if clientIsSelf() || attendanceManager(gymId);
-        allow update: if administrator(gymId);
+        allow get, list: if clientIsSelf() || hasPermission(gymId, 'viewRequests') || hasPermission(gymId, 'approveRequests');
+        allow update: if hasPermission(gymId, 'approveRequests');
         allow delete: if false;
       }
       match /attendance/{attendanceId} {
-        allow get, list: if clientIsSelf() || attendanceManager(gymId) || (activeMember(gymId) && resource.data.trainerUid == request.auth.uid);
-        allow create: if attendanceManager(gymId) || (activeMember(gymId) && request.resource.data.trainerUid == request.auth.uid);
-        allow update: if attendanceManager(gymId) || (activeMember(gymId) && resource.data.trainerUid == request.auth.uid && request.resource.data.trainerUid == request.auth.uid);
+        allow get, list: if clientIsSelf() || hasPermission(gymId, 'takeAttendance') ||
+          (activeMember(gymId) && resource.data.trainerUid == request.auth.uid && hasPermission(gymId, 'viewSchedule'));
+        allow create: if hasPermission(gymId, 'takeAttendance') &&
+          request.resource.data.trainerUid == request.auth.uid &&
+          request.resource.data.turnId in teamRecord(gymId).data.assignedTurnIds;
+        allow update: if hasPermission(gymId, 'takeAttendance') &&
+          resource.data.trainerUid == request.auth.uid &&
+          request.resource.data.trainerUid == request.auth.uid &&
+          request.resource.data.turnId in teamRecord(gymId).data.assignedTurnIds;
         allow delete: if administrator(gymId);
       }
-      match /cash/{entryId} { allow read, create, update: if administrator(gymId) && paidPlan(gymId); allow delete: if false; }
-      match /weeklySchedule/{entryId} { allow read: if activeMember(gymId); allow write: if administrator(gymId); }
-      match /exceptions/{entryId} { allow read: if activeMember(gymId); allow write: if administrator(gymId); }
+      match /cash/{entryId} { allow read, create, update: if hasPermission(gymId, 'manageCash') && paidPlan(gymId); allow delete: if false; }
+      match /weeklySchedule/{entryId} { allow read: if hasPermission(gymId, 'viewSchedule'); allow write: if hasPermission(gymId, 'manageSchedule'); }
+      match /exceptions/{entryId} { allow read: if hasPermission(gymId, 'viewSchedule'); allow write: if hasPermission(gymId, 'manageSchedule'); }
       match /planRequests/{requestId} {
         allow get, list: if activeMember(gymId) && teamRecord(gymId).data.role == 'owner';
         allow create, update, delete: if false;
