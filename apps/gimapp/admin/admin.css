@@ -1,1 +1,16 @@
 @import url('../panel/panel.css');body{min-height:100vh;background:radial-gradient(circle at 15% 20%,#e6f2eb,transparent 35%),var(--bg)}.admin-shell{max-width:900px;margin:0 auto;padding:34px 24px}.admin-brand{display:flex;align-items:center;gap:10px;color:var(--ink);font:800 18px Manrope;text-decoration:none}.admin-brand img{width:38px;height:38px;border-radius:12px}.admin-brand span{background:#e8edf0;color:#54616a;border-radius:20px;padding:5px 8px;font:700 9px 'DM Sans';letter-spacing:.1em}.admin-card{margin:15vh auto 0;max-width:570px;background:#fff;border:1px solid var(--line);border-radius:20px;padding:38px;box-shadow:var(--shadow)}.admin-card h1{font-size:30px;margin:8px 0}.admin-card>p:not(.eyebrow){color:var(--muted);line-height:1.6}.admin-notice{background:#f4f7f5;border:1px solid var(--line);padding:15px;border-radius:10px;color:#5d6962;font-size:12px;line-height:1.6;margin:22px 0}.admin-card>a{color:var(--green);font-size:12px;text-decoration:none;font-weight:700}
+
+.shell{max-width:900px;margin:42px auto 70px;width:min(980px,calc(100% - 32px))}
+.header,.toolbar{display:flex;justify-content:space-between;align-items:center;gap:16px}
+.header{margin-bottom:26px}.header h1{font-size:28px;margin:7px 0 0}
+.card,.request-card{background:#fff;border:1px solid var(--line);border-radius:15px;padding:22px;box-shadow:0 5px 24px #1d2b2308}
+.card{max-width:430px}.card h2{margin:0 0 8px;font-size:18px}.card p,.muted{color:var(--muted);font-size:13px;line-height:1.6}
+.card form{display:grid;gap:13px;margin:20px 0 10px}.card label{display:grid;gap:6px;font-size:12px;font-weight:700}
+.card input{border:1px solid var(--line);border-radius:8px;padding:11px;font:inherit}
+.message{font-size:13px;color:#8b5d22;line-height:1.5}.toolbar{margin:12px 0 18px}
+.request-list{display:grid;gap:12px}.request-card h2{font-size:17px;margin:0 0 5px}
+.request-meta{font-size:12px;color:var(--muted);line-height:1.7}.request-actions{display:flex;gap:8px;margin-top:16px}
+.request-actions .approve{background:var(--green);color:#fff;border-color:var(--green)}
+.request-actions .reject{color:#9a443b;background:#fff;border-color:#ead8d6}
+.empty{padding:32px;text-align:center;color:var(--muted);background:#fff;border:1px dashed var(--line);border-radius:12px}
+@media(max-width:600px){.shell{margin-top:24px}.header h1{font-size:22px}.card,.request-card{padding:17px}.toolbar{align-items:flex-start}}
