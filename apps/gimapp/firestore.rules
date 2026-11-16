@@ -82,6 +82,10 @@ service cloud.firestore {
       match /cash/{entryId} { allow read, create, update: if administrator(gymId); allow delete: if false; }
       match /weeklySchedule/{entryId} { allow read: if activeMember(gymId); allow write: if administrator(gymId); }
       match /exceptions/{entryId} { allow read: if activeMember(gymId); allow write: if administrator(gymId); }
+      match /planRequests/{requestId} {
+        allow get, list: if activeMember(gymId) && teamRecord(gymId).data.role == 'owner';
+        allow create, update, delete: if false;
+      }
       match /audit/{entryId} { allow read: if administrator(gymId); allow create: if activeMember(gymId); allow update, delete: if false; }
     }
   }
