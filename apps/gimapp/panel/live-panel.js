@@ -1,5 +1,5 @@
 // GimAPP · versión 0.1 · 3 de noviembre de 2026.
-import { approveRequest, addCashEntry, createTeamInvitation, deactivateTeamMember, getCatalogConfiguration, getCashEntries, getClients, getGymProfile, getPendingRequests, getPlanRequests, listTeam, rejectRequest, requestPlanChange, revokeTeamInvitation, saveAttendance, saveGymSchedule, savePublicCatalog, updateGymProfile, updateTeamMember } from './data.js?v=20261115-team-1';
+import { approveRequest, addCashEntry, createTeamInvitation, deactivateTeamMember, getCashEntries, getClients, getGymWorkspace, getPendingRequests, getPlanRequests, listTeam, rejectRequest, requestPlanChange, revokeTeamInvitation, saveAttendance, saveGymSchedule, savePublicCatalog, updateGymProfile, updateTeamMember } from './data.js?v=20261115-team-1';
 
 const app = document.querySelector('#app');
 const nav = document.querySelector('#main-nav');
@@ -62,11 +62,11 @@ function heading(title, subtitle, action = '') { return `<div class="page-headin
 function table(rows, headers) { return `<div class="table-wrap"><table class="data-table"><thead><tr>${headers.map(item => `<th>${item}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`; }
 function openModal(title, body, actions = '') { modalContent.innerHTML = `<div class="modal-inner"><div class="modal-head"><h2>${title}</h2><button class="close" data-close aria-label="Cerrar">×</button></div>${body}<div class="modal-actions">${actions}</div></div>`; modal.showModal(); }
 async function load() {
-  const gym = await getGymProfile(membership.gymId);
-  const canAttend = canManageAttendance();
+  const workspace = await getGymWorkspace(membership.gymId);
+  const gym = workspace.gym;
+  const catalog = workspace.catalog;
   const canAdmin = canManageGym();
-  const [catalog, requests, clients, cash, planRequests, team] = await Promise.all([
-    getCatalogConfiguration(membership.gymId),
+  const [requests, clients, cash, planRequests, team] = await Promise.all([
     (can('viewRequests') || can('approveRequests')) ? getPendingRequests(membership.gymId) : Promise.resolve([]),
     (can('viewClients') || can('takeAttendance')) ? getClients(membership.gymId) : Promise.resolve([]),
     can('manageCash') && hasPaidPlan(gym) ? getCashEntries(membership.gymId) : Promise.resolve([]),
