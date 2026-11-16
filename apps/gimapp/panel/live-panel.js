@@ -98,6 +98,9 @@ function plansPage() {
     : latest?.status === 'rejected' ? 'Solicitud anterior rechazada' : '';
   const canRequestPro = membership.role === 'owner' && currentPlan === 'free' && !lockedRequest;
   const canRequestGold = membership.role === 'owner' && currentPlan !== 'gold' && !lockedRequest;
+  const manualGrantNotice = state.gym.planSource === 'manual' && ['pro', 'gold'].includes(currentPlan)
+    ? `<div class="notice">Este gimnasio tiene una habilitación gratuita de prueba${state.gym.planExpiresAt?.toDate ? ' hasta el ' + esc(state.gym.planExpiresAt.toDate().toLocaleDateString('es-AR')) : ' permanente'}.</div>`
+    : '';
   const requestButton = (plan, enabled) => enabled
     ? `<button class="button primary full" data-action="request-plan" data-plan="${plan}">Solicitar migración a ${plan === 'pro' ? 'Pro' : 'Gold'}</button>`
     : '';
@@ -105,6 +108,7 @@ function plansPage() {
     <section class="card">
       <div class="card-head"><h2>Tu plan actual</h2><span class="status">${esc(currentLabel)}</span></div>
       <p class="muted">Las funciones de tu gimnasio se habilitan según el plan asignado por TusAPP.</p>
+      ${manualGrantNotice}
       ${latest ? `<div class="notice"><b>Última solicitud:</b> ${esc(statusLabel)}. Plan solicitado: ${esc(latest.requestedPlan?.toUpperCase() || '—')}.${latest.status === 'approved_waiting_payment' ? ' El plan no se activa hasta que se confirme el pago.' : ''}</div>` : ''}
       ${lockedRequest ? '<p class="small muted">No podés enviar otra solicitud mientras esta siga pendiente o esperando el pago.</p>' : ''}
     </section>
