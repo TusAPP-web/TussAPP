@@ -1,6 +1,7 @@
 const assert = require('node:assert/strict');
 const { initializeApp, deleteApp } = require('firebase-admin/app');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
+const { getAuth } = require('firebase-admin/auth');
 
 const projectId = 'demo-gimapp';
 const authHost = process.env.FIREBASE_AUTH_EMULATOR_HOST || '127.0.0.1:9099';
@@ -21,12 +22,7 @@ async function authUser(email) {
   return body;
 }
 async function verifyEmail(user) {
-  const updateResponse = await fetch('http://' + authHost + '/identitytoolkit.googleapis.com/v1/accounts:update?key=fake-api-key', {
-    method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ idToken: user.idToken, emailVerified: true, returnSecureToken: true }),
-  });
-  const updated = await updateResponse.json();
-  assert.equal(updateResponse.ok, true, JSON.stringify(updated));
+  await getAuth(app).updateUser(user.localId, { emailVerified: true });
   const signInResponse = await fetch('http://' + authHost + '/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=fake-api-key', {
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ email: user.email, password: 'TestPassword123!', returnSecureToken: true }),
