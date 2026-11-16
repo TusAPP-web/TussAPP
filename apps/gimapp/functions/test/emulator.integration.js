@@ -287,6 +287,25 @@ async function register(uidToken, gymId) {
     });
     assert.equal(forbiddenPermissionUpdate.body.error?.status, 'FAILED_PRECONDITION', JSON.stringify(forbiddenPermissionUpdate.body));
 
+    const freeTeamOwner = await authUser('free-team-owner@example.test');
+    const freeTeamEmployee = await authUser('free-team-employee@example.test');
+    await db.doc('gyms/gym-team-free').set({
+      ownerUid: freeTeamOwner.localId, name: 'Gimnasio Free Equipo',
+      status: 'active', plan: 'free',
+      scheduleTurns: [{ id: 'turn-free', day: 'Viernes', start: '10:00', end: '11:00', discipline: 'Movilidad' }],
+    });
+    await db.doc('gyms/gym-team-free/team/' + freeTeamOwner.localId).set({
+      uid: freeTeamOwner.localId, role: 'owner', active: true,
+    });
+    await db.doc('gyms/gym-team-free/team/' + freeTeamEmployee.localId).set({
+      uid: freeTeamEmployee.localId, role: 'staff', active: true,
+      permissions: { viewSchedule: true }, assignedTurnIds: ['turn-free'],
+    });
+    const freeEmployeeWorkspace = await call('getGymWorkspace', freeTeamEmployee.idToken, { gymId: 'gym-team-free' });
+    assert.equal(freeEmployeeWorkspace.body.error?.status, 'PERMISSION_DENIED', JSON.stringify(freeEmployeeWorkspace.body));
+    const freeOwnerWorkspace = await call('getGymWorkspace', freeTeamOwner.idToken, { gymId: 'gym-team-free' });
+    assert.equal(freeOwnerWorkspace.status, 200, JSON.stringify(freeOwnerWorkspace.body));
+
     const teamGoldOwner = await authUser('team-gold-owner@example.test');
     await db.doc('gyms/gym-team-gold').set({
       ownerUid: teamGoldOwner.localId, name: 'Gimnasio Gold Equipo',
