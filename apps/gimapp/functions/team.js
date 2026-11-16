@@ -150,6 +150,7 @@ exports.getGymWorkspace = onCall(options, async request => {
     }
     clients = [...unique.values()];
   }
+  clients.sort((a, b) => String(a.lastName || '').localeCompare(String(b.lastName || ''), 'es'));
   const planExpiresAt = gym.planExpiresAt?.toDate?.().toISOString() || null;
   return {
     gym: {
