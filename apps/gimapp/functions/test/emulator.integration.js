@@ -206,7 +206,10 @@ async function register(uidToken, gymId) {
     await db.doc('gyms/gym-team-pro').set({
       ownerUid: teamOwner.localId, name: 'Gimnasio Pro Equipo',
       status: 'active', plan: 'pro',
-      scheduleTurns: [{ id: 'turn-morning', day: 'Lunes', start: '08:00', end: '09:00', discipline: 'Funcional' }],
+      scheduleTurns: [
+        { id: 'turn-morning', day: 'Lunes', start: '08:00', end: '09:00', discipline: 'Funcional' },
+        { id: 'turn-evening', day: 'Lunes', start: '19:00', end: '20:00', discipline: 'Yoga' },
+      ],
     });
     await db.doc('gyms/gym-team-pro/team/' + teamOwner.localId).set({
       uid: teamOwner.localId, name: 'Dueño', email: 'team-owner@example.test',
@@ -259,6 +262,9 @@ async function register(uidToken, gymId) {
     assert.equal(employeeRecord.data()?.permissions?.takeAttendance, true);
     const employeeProfile = await db.doc('users/' + employeeOne.localId).get();
     assert.equal(employeeProfile.data()?.currentGymId, 'gym-team-pro');
+    const employeeWorkspace = await call('getGymWorkspace', verifiedEmployeeOne.idToken, { gymId: 'gym-team-pro' });
+    assert.equal(employeeWorkspace.status, 200, JSON.stringify(employeeWorkspace.body));
+    assert.deepEqual(employeeWorkspace.body.result?.catalog?.turns.map(turn => turn.id), ['turn-morning']);
     const forbiddenPermissionUpdate = await call('updateTeamMember', teamOwner.idToken, {
       gymId: 'gym-team-pro', memberUid: employeeOne.localId,
       permissions: { ...basicEmployeePermissions, manageSchedule: true },
