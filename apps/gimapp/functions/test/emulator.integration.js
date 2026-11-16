@@ -220,6 +220,11 @@ async function register(uidToken, gymId) {
       permissions: basicEmployeePermissions, assignedTurnIds: ['turn-morning'],
     });
     assert.equal(inviteOne.status, 200, JSON.stringify(inviteOne.body));
+    const duplicateEmployeeInvite = await call('createTeamInvitation', teamOwner.idToken, {
+      gymId: 'gym-team-pro', name: 'Empleado Uno duplicado', email: 'employee-one@example.test',
+      permissions: basicEmployeePermissions, assignedTurnIds: ['turn-morning'],
+    });
+    assert.equal(duplicateEmployeeInvite.body.error?.status, 'ALREADY_EXISTS', JSON.stringify(duplicateEmployeeInvite.body));
     const inviteTwo = await call('createTeamInvitation', teamOwner.idToken, {
       gymId: 'gym-team-pro', name: 'Empleado Dos', email: 'employee-two@example.test',
       permissions: basicEmployeePermissions, assignedTurnIds: ['turn-morning'],
