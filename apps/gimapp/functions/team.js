@@ -65,12 +65,13 @@ function validatePlanPermissions(gym, permissions) {
   }
   return permissions;
 }
-function validateTurns(gym, turnIds) {
+function validateTurns(gym, turnIds, fallbackTurns = []) {
   if (!Array.isArray(turnIds) || turnIds.length > 100 ||
       turnIds.some(id => !validId(id))) {
     throw new HttpsError('invalid-argument', 'La asignación de horarios no es válida.');
   }
-  const available = new Set((gym.scheduleTurns || []).map(turn => turn.id));
+  const sourceTurns = Array.isArray(gym.scheduleTurns) ? gym.scheduleTurns : fallbackTurns;
+  const available = new Set(sourceTurns.map(turn => turn.id));
   if (turnIds.some(id => !available.has(id))) {
     throw new HttpsError('not-found', 'Uno de los horarios seleccionados ya no existe.');
   }
@@ -164,7 +165,9 @@ exports.createTeamInvitation = onCall(options, async request => {
       throw new HttpsError('failed-precondition', 'La gestión de empleados requiere un plan Pro o Gold activo.');
     }
     validatePlanPermissions(gym, permissions);
-    const turnIds = validateTurns(gym, request.data?.assignedTurnIds || []);
+    const catalogSnap = await tx.get(db.doc('publicCatalog/' + gymId));
+    const fallbackTurns = catalogSnap.exists && Array.isArray(catalogSnap.data().turns) ? catalogSnap.data().turns : [];
+    const turnIds = validateTurns(gym, request.data?.assignedTurnIds || [], fallbackTurns);
     const [seats, duplicate, existingMembers] = await Promise.all([
       countReservedSeats(tx, gymRef),
       tx.get(gymRef.collection('teamInvitations').where('email', '==', email)),
@@ -203,7 +206,7 @@ exports.acceptTeamInvitation = onCall(options, async request => {
   const memberRef = gymRef.collection('team').doc(uid);
   const userRef = db.doc('users/' + uid);
   return db.runTransaction(async tx => {
-    const [gymSnap, inviteSnap, memberSnap, userSnap] = await Promise.all([
+    const [gymSnap, inviteSnap, memberSnap, userSnap, catalogSnap] = await Promise.all([
       tx.get(gymRef), tx.get(inviteRef), tx.get(memberRef), tx.get(userRef),
     ]);
     if (!gymSnap.exists || gymSnap.data().status !== 'active' || !inviteSnap.exists) {
@@ -234,7 +237,8 @@ exports.acceptTeamInvitation = onCall(options, async request => {
     if (gym.plan === 'pro' && seats > 3) {
       throw new HttpsError('resource-exhausted', 'Se alcanzó el máximo de 3 cuentas del plan Pro.');
     }
-    const assignedTurnIds = validateTurns(gym, invite.assignedTurnIds || []);
+    const fallbackTurns = catalogSnap.exists && Array.isArray(catalogSnap.data().turns) ? catalogSnap.data().turns : [];
+    const assignedTurnIds = validateTurns(gym, invite.assignedTurnIds || [], fallbackTurns);
     tx.set(memberRef, {
       uid, name: invite.name, email, role: 'staff', active: true,
       permissions: invite.permissions, assignedTurnIds,
@@ -272,8 +276,11 @@ exports.updateTeamMember = onCall(options, async request => {
     if (gym.status !== 'active') throw new HttpsError('failed-precondition', 'El gimnasio no está activo.');
     if (!planIsActive(gym)) throw new HttpsError('failed-precondition', 'La gestión del equipo requiere Pro o Gold activo.');
     validatePlanPermissions(gym, permissions);
-    const assignedTurnIds = validateTurns(gym, request.data?.assignedTurnIds || []);
-    const memberSnap = await tx.get(memberRef);
+    const [memberSnap, catalogSnap] = await Promise.all([
+      tx.get(memberRef), tx.get(db.doc('publicCatalog/' + gymId)),
+    ]);
+    const fallbackTurns = catalogSnap.exists && Array.isArray(catalogSnap.data().turns) ? catalogSnap.data().turns : [];
+    const assignedTurnIds = validateTurns(gym, request.data?.assignedTurnIds || [], fallbackTurns);
     if (!memberSnap.exists || memberSnap.data().role === 'owner' || memberSnap.data().active !== true) {
       throw new HttpsError('not-found', 'No se encontró un empleado activo para modificar.');
     }
