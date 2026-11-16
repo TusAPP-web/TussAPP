@@ -129,6 +129,10 @@ async function register(uidToken, gymId) {
       gymId: 'gym-plan', requestedPlan: 'gold',
     });
     assert.equal(duplicatePlanRequest.body.error?.status, 'ALREADY_EXISTS', JSON.stringify(duplicatePlanRequest.body));
+    const unauthorizedPlanReview = await call('resolvePlanChangeRequest', userA.idToken, {
+      gymId: 'gym-plan', requestId: planRequest.body.result.requestId, decision: 'approve',
+    });
+    assert.equal(unauthorizedPlanReview.body.error?.status, 'PERMISSION_DENIED', JSON.stringify(unauthorizedPlanReview.body));
     const platformAdmin = await authUser('platform-admin@example.test');
     await db.doc('platformAdmins/' + platformAdmin.localId).set({ active: true });
     const approvedPlan = await call('resolvePlanChangeRequest', platformAdmin.idToken, {
@@ -138,6 +142,10 @@ async function register(uidToken, gymId) {
     assert.equal(approvedPlan.body.result?.status, 'approved_waiting_payment');
     const planAfterApproval = await db.doc('gyms/gym-plan').get();
     assert.equal(planAfterApproval.data()?.plan, 'free');
+    const requestWhileWaitingPayment = await call('requestPlanChange', planOwner.idToken, {
+      gymId: 'gym-plan', requestedPlan: 'gold',
+    });
+    assert.equal(requestWhileWaitingPayment.body.error?.status, 'ALREADY_EXISTS', JSON.stringify(requestWhileWaitingPayment.body));
 
     const invalidId = await call('enrollClientInTurn', winner.idToken, { gymId: '../bad', turnId: 'turn-1' });
     assert.equal(invalidId.body.error?.status, 'INVALID_ARGUMENT', JSON.stringify(invalidId.body));
