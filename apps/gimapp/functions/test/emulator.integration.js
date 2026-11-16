@@ -156,6 +156,26 @@ async function register(uidToken, gymId) {
     assert.equal(trialGym.data()?.planGrantReason, 'Prueba piloto autorizada');
     assert.equal(trialGym.data()?.planGrantedBy, platformAdmin.localId);
     assert.ok(trialGym.data()?.planExpiresAt?.toMillis() > Date.now());
+    const makeTrialPermanent = await call('updateManualPlanExpiry', platformAdmin.idToken, {
+      gymId: 'gym-trial', expiresAt: null, reason: 'Extensión indefinida para tester',
+    });
+    assert.equal(makeTrialPermanent.status, 200, JSON.stringify(makeTrialPermanent.body));
+    assert.equal(makeTrialPermanent.body.result?.expiresAt, null);
+    const permanentTrial = await db.doc('gyms/gym-trial').get();
+    assert.equal(permanentTrial.data()?.planSource, 'manual');
+    assert.equal(permanentTrial.data()?.planExpiresAt, null);
+    const setTrialExpiry = await call('updateManualPlanExpiry', platformAdmin.idToken, {
+      gymId: 'gym-trial',
+      expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+      reason: 'Se establece nueva fecha de finalización',
+    });
+    assert.equal(setTrialExpiry.status, 200, JSON.stringify(setTrialExpiry.body));
+    assert.ok((await db.doc('gyms/gym-trial').get()).data()?.planExpiresAt?.toMillis() > Date.now());
+    const unauthorizedExpiryEdit = await call('updateManualPlanExpiry', userA.idToken, {
+      gymId: 'gym-trial', expiresAt: null, reason: 'No autorizado',
+    });
+    assert.equal(unauthorizedExpiryEdit.body.error?.status, 'PERMISSION_DENIED', JSON.stringify(unauthorizedExpiryEdit.body));
+
     const adminQueue = await call('listPendingPlanChangeRequests', platformAdmin.idToken, {});
     assert.equal(adminQueue.status, 200, JSON.stringify(adminQueue.body));
     assert.equal(adminQueue.body.result?.requests?.length, 1, JSON.stringify(adminQueue.body));
