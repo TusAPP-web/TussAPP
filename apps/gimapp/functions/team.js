@@ -5,8 +5,7 @@ const db = getFirestore();
 const options = { region: 'southamerica-east1' };
 const permissionKeys = [
   'viewSchedule', 'viewClients', 'viewRequests', 'approveRequests',
-  'takeAttendance', 'manageSchedule', 'manageClients', 'manageCash',
-  'viewReports', 'manageCatalog',
+  'takeAttendance', 'manageSchedule', 'manageClients', 'manageCash', 'manageCatalog',
 ];
 function text(value, label, max = 160) {
   if (typeof value !== 'string' || !value.trim() || value.trim().length > max) {
