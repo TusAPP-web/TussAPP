@@ -41,6 +41,11 @@ service cloud.firestore {
     function attendanceManager(gymId) { return hasPermission(gymId, 'takeAttendance'); }
     function attendanceAdministrator(gymId) { return activeMember(gymId) && (teamRecord(gymId).data.role == 'owner' || (!('permissions' in teamRecord(gymId).data) && teamRecord(gymId).data.role in ['complete', 'intermediate'])); }
     function clientIsSelf() { return signedIn() && resource.data.clientUid == request.auth.uid; }
+    function clientAssignedToMember(gymId) {
+      return teamRecord(gymId).data.assignedTurnIds is list
+        && resource.data.assignedTurnIds is list
+        && resource.data.assignedTurnIds.hasAny(teamRecord(gymId).data.assignedTurnIds);
+    }
     function createsOwnClientData() { return signedIn() && request.resource.data.clientUid == request.auth.uid; }
 
     match /users/{userUid} {
@@ -89,8 +94,8 @@ service cloud.firestore {
         allow update, delete: if false;
       }
       match /clients/{clientUid} {
-        allow get: if clientIsSelf() || hasPermission(gymId, 'viewClients') || hasPermission(gymId, 'takeAttendance');
-        allow list: if hasPermission(gymId, 'viewClients') || hasPermission(gymId, 'takeAttendance');
+        allow get: if clientIsSelf() || hasPermission(gymId, 'viewClients') || hasPermission(gymId, 'manageClients') || (hasPermission(gymId, 'takeAttendance') && clientAssignedToMember(gymId));
+        allow list: if hasPermission(gymId, 'viewClients') || hasPermission(gymId, 'manageClients') || (hasPermission(gymId, 'takeAttendance') && clientAssignedToMember(gymId));
         allow create, update: if hasPermission(gymId, 'manageClients');
         allow delete: if false;
       }
