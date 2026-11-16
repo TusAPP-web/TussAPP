@@ -1,5 +1,5 @@
 // GimAPP · versión 0.1 · 3 de noviembre de 2026.
-import { approveRequest, addCashEntry, createTeamInvitation, deactivateTeamMember, getCashEntries, getClients, getGymWorkspace, getPendingRequests, getPlanRequests, listTeam, rejectRequest, requestPlanChange, revokeTeamInvitation, saveAttendance, saveGymSchedule, savePublicCatalog, updateGymProfile, updateTeamMember } from './data.js?v=20261115-team-5';
+import { approveRequest, addCashEntry, createTeamInvitation, deactivateTeamMember, getCashEntries, getGymWorkspace, getPendingRequests, getPlanRequests, listTeam, rejectRequest, requestPlanChange, revokeTeamInvitation, saveAttendance, saveGymSchedule, savePublicCatalog, updateGymProfile, updateTeamMember } from './data.js?v=20261115-team-6';
 
 const app = document.querySelector('#app');
 const nav = document.querySelector('#main-nav');
@@ -69,13 +69,13 @@ async function load() {
   state.gym = gym;
   state.catalog = catalog;
   const canAdmin = canManageGym();
-  const [requests, clients, cash, planRequests, team] = await Promise.all([
+  const [requests, cash, planRequests, team] = await Promise.all([
     (can('viewRequests') || can('approveRequests')) ? getPendingRequests(membership.gymId) : Promise.resolve([]),
-    (can('viewClients') || can('manageClients')) ? getClients(membership.gymId) : can('takeAttendance') ? getClients(membership.gymId, membership.assignedTurnIds || []) : Promise.resolve([]),
     can('manageCash') && hasPaidPlan(gym) ? getCashEntries(membership.gymId) : Promise.resolve([]),
     membership.role === 'owner' ? getPlanRequests(membership.gymId) : Promise.resolve([]),
     membership.role === 'owner' ? listTeam(membership.gymId) : Promise.resolve({ members: [], invitations: [], plan: effectivePlan(gym) }),
   ]);
+  const clients = Array.isArray(workspace.clients) ? workspace.clients : [];
   state = { gym, catalog, requests, clients, cash, planRequests, team };
   document.querySelectorAll('[data-gym-name]').forEach(el => { el.textContent = gym.name; });
   document.querySelectorAll('[data-plan-name]').forEach(el => { el.textContent = effectivePlan(gym) === 'free' ? 'Gratis' : effectivePlan(gym).toUpperCase(); });
