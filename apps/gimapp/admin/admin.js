@@ -79,6 +79,36 @@ document.querySelector('#google-login').addEventListener('click', async () => {
     await signInWithPopup(services.auth, provider);
   } catch (error) { showError(error, loginMessage); }
 });
+document.querySelector('#manual-grant-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const gymId = form.elements.gymId.value.trim();
+  const plan = form.elements.plan.value;
+  const duration = form.elements.duration.value;
+  const reason = form.elements.reason.value.trim();
+  if (!gymId || !reason || !['pro', 'gold'].includes(plan)) {
+    adminMessage.textContent = 'Completá el gimnasio, el plan y el motivo.';
+    return;
+  }
+  const permanent = duration === 'permanent';
+  const expiresAt = permanent ? null : new Date(Date.now() + Number(duration) * 86400000).toISOString();
+  const period = permanent ? 'sin vencimiento' : 'por ' + duration + ' días';
+  if (!window.confirm('¿Habilitar ' + plan.toUpperCase() + ' gratis para ' + gymId + ' ' + period + '?')) return;
+  const submit = form.querySelector('button[type="submit"]');
+  submit.disabled = true;
+  adminMessage.textContent = 'Registrando habilitación manual…';
+  try {
+    const grant = httpsCallable(getFunctions(services.app, 'southamerica-east1'), 'grantPlanManually');
+    const result = await grant({ gymId, plan, reason, expiresAt });
+    adminMessage.textContent = 'Plan ' + result.data.plan.toUpperCase() + ' habilitado gratuitamente para ' +
+      result.data.gymId + (result.data.expiresAt ? '. Vence: ' + new Date(result.data.expiresAt).toLocaleString('es-AR') : '. Habilitación permanente.');
+    form.reset();
+  } catch (error) {
+    showError(error);
+  } finally {
+    submit.disabled = false;
+  }
+});
 document.querySelector('#refresh').addEventListener('click', loadRequests);
 signOutButton.addEventListener('click', () => signOut(services.auth));
 requestsElement.addEventListener('click', async event => {
