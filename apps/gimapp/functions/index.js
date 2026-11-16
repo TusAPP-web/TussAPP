@@ -150,7 +150,12 @@ exports.approveClientRequest = onCall(options, async (request) => {
       tx.get(gymRef), tx.get(teamRef), tx.get(requestRef), tx.get(catalogRef),
     ]);
     const team = teamSnap.data();
-    if (!teamSnap.exists || team.active !== true || !(team.role === 'owner' || team.permissions?.approveRequests === true || (!team.permissions && team.role === 'complete'))) {
+    const gymData = gymSnap.data();
+    const planExpiry = gymData?.planExpiresAt;
+    const activeGold = gymData?.plan === 'gold' && (!planExpiry || planExpiry.toMillis() > Date.now());
+    const canApprove = team?.role === 'owner' ||
+      (activeGold && (team?.permissions?.approveRequests === true || (!team?.permissions && team?.role === 'complete')));
+    if (!teamSnap.exists || team.active !== true || !canApprove) {
       throw new HttpsError('permission-denied', 'Tu cuenta no tiene permiso para aprobar solicitudes.');
     }
     if (!gymSnap.exists || !requestSnap.exists || requestSnap.data().status !== 'pending') {
