@@ -208,6 +208,7 @@ exports.acceptTeamInvitation = onCall(options, async request => {
   return db.runTransaction(async tx => {
     const [gymSnap, inviteSnap, memberSnap, userSnap, catalogSnap] = await Promise.all([
       tx.get(gymRef), tx.get(inviteRef), tx.get(memberRef), tx.get(userRef),
+      tx.get(db.doc('publicCatalog/' + gymId)),
     ]);
     if (!gymSnap.exists || gymSnap.data().status !== 'active' || !inviteSnap.exists) {
       throw new HttpsError('not-found', 'No se encontró la invitación.');
