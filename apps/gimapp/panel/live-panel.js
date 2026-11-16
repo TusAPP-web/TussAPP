@@ -23,6 +23,8 @@ function effectivePlan(gym) {
 function hasPaidPlan(gym) {
   return ['pro', 'gold'].includes(effectivePlan(gym));
 }
+function canManageGym() { return ['owner', 'complete'].includes(membership.role); }
+function canManageAttendance() { return ['owner', 'complete', 'intermediate'].includes(membership.role); }
 
 function toast(message) { const el = document.querySelector('#toast'); el.textContent = message; el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 2800); }
 function heading(title, subtitle, action = '') { return `<div class="page-heading"><div><span class="eyebrow">${esc(state.gym?.name || 'GIMAPP')}</span><h1>${title}</h1><p>${subtitle}</p></div>${action}</div>`; }
@@ -30,18 +32,31 @@ function table(rows, headers) { return `<div class="table-wrap"><table class="da
 function openModal(title, body, actions = '') { modalContent.innerHTML = `<div class="modal-inner"><div class="modal-head"><h2>${title}</h2><button class="close" data-close aria-label="Cerrar">×</button></div>${body}<div class="modal-actions">${actions}</div></div>`; modal.showModal(); }
 async function load() {
   const gym = await getGymProfile(membership.gymId);
+  const canAttend = canManageAttendance();
+  const canAdmin = canManageGym();
   const [catalog, requests, clients, cash, planRequests] = await Promise.all([
     getCatalogConfiguration(membership.gymId),
-    getPendingRequests(membership.gymId),
-    getClients(membership.gymId),
-    hasPaidPlan(gym) ? getCashEntries(membership.gymId) : Promise.resolve([]),
+    canAttend ? getPendingRequests(membership.gymId) : Promise.resolve([]),
+    canAttend ? getClients(membership.gymId) : Promise.resolve([]),
+    canAdmin && hasPaidPlan(gym) ? getCashEntries(membership.gymId) : Promise.resolve([]),
     membership.role === 'owner' ? getPlanRequests(membership.gymId) : Promise.resolve([]),
   ]);
   state = { gym, catalog, requests, clients, cash, planRequests };
   document.querySelectorAll('[data-gym-name]').forEach(el => { el.textContent = gym.name; });
   document.querySelectorAll('[data-plan-name]').forEach(el => { el.textContent = effectivePlan(gym) === 'free' ? 'Gratis' : effectivePlan(gym).toUpperCase(); });
+  const navRules = {
+    solicitudes: canAttend,
+    clientes: canAttend,
+    caja: canAdmin,
+    planes: membership.role === 'owner',
+    configuracion: canAdmin,
+  };
+  Object.entries(navRules).forEach(([key, visible]) => {
+    const item = nav.querySelector('[data-page="' + key + '"]');
+    if (item) item.hidden = !visible;
+  });
   const cashNav = nav.querySelector('[data-page="caja"]');
-  if (cashNav) cashNav.classList.toggle('locked', !hasPaidPlan(gym));
+  if (cashNav) cashNav.classList.toggle('locked', canAdmin && !hasPaidPlan(gym));
   const badge = document.querySelector('#request-badge');
   if (badge) { badge.hidden = requests.length === 0; badge.textContent = requests.length || ''; }
 }
@@ -52,12 +67,13 @@ function home() {
   const tasks = state.requests.length ? `<section class="card home-tasks"><div class="card-head"><h2>Tareas pendientes</h2><span class="status pending">${state.requests.length} pendientes</span></div>${state.requests.map(item => `<div class="task-item"><span class="task-icon">✳</span><div><b>Solicitud de ${esc(`${item.firstName} ${item.lastName}`)}</b><p>Esperando revisión.</p><a href="#" data-page="solicitudes">Revisar →</a></div></div>`).join('')}</section>` : '';
   return `${heading('Inicio', 'Calendario y tareas que necesitan atención')}${tasks}<section class="card calendar-card"><div class="card-head"><h2>Calendario</h2><button class="button small" data-action="today">Hoy</button></div><div class="calendar-toolbar"><div class="switch"><button class="button small" data-action="prev-month">‹</button><button class="button small" data-action="next-month">›</button><strong>${new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric' }).format(month)}</strong></div></div><div class="calendar-grid">${['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map(day => `<div class="calendar-dayname">${day}</div>`).join('')}${cells}</div></section>`;
 }
-function requestsPage() { return `${heading('Solicitudes', 'Revisá los datos y horarios antes de decidir.')}<section class="card"><div class="card-head"><h2>Altas pendientes</h2><span class="status pending">${state.requests.length} por revisar</span></div>${state.requests.length ? table(state.requests.map(item => `<tr><td>${person(`${item.firstName} ${item.lastName}`)}</td><td>${esc(item.phone)}<div class="small muted">${esc(item.email || '')}</div></td><td>${esc((item.requestedTurnIds || []).join(', '))}</td><td><button class="button small soft" data-action="approve-request" data-id="${item.id}">Aprobar</button> <button class="button small" data-action="reject-request" data-id="${item.id}">Rechazar</button></td></tr>`).join(''), ['Cliente', 'Contacto', 'Turnos solicitados', '']) : '<div class="empty"><strong>No hay solicitudes pendientes</strong>Cuando llegue una nueva, aparecerá aquí.</div>'}</section>`; }
+function requestsPage() { return `${heading('Solicitudes', 'Revisá los datos y horarios antes de decidir.')}<section class="card"><div class="card-head"><h2>Altas pendientes</h2><span class="status pending">${state.requests.length} por revisar</span></div>${state.requests.length ? table(state.requests.map(item => `<tr><td>${person(`${item.firstName} ${item.lastName}`)}</td><td>${esc(item.phone)}<div class="small muted">${esc(item.email || '')}</div></td><td>${esc((item.requestedTurnIds || []).join(', '))}</td><td>${canManageGym() ? `<button class="button small soft" data-action="approve-request" data-id="${item.id}">Aprobar</button> <button class="button small" data-action="reject-request" data-id="${item.id}">Rechazar</button>` : '<span class="small muted">Solo administración puede resolver solicitudes.</span>'}</td></tr>`).join(''), ['Cliente', 'Contacto', 'Turnos solicitados', '']) : '<div class="empty"><strong>No hay solicitudes pendientes</strong>Cuando llegue una nueva, aparecerá aquí.</div>'}</section>`; }
 function clientsPage() { return `${heading('Clientes', 'Clientes registrados y turnos asignados.')}<section class="card">${state.clients.length ? table(state.clients.map(client => `<tr><td><b>${esc(client.displayId || client.id)}</b></td><td>${person(`${client.firstName} ${client.lastName}`)}</td><td>${esc(client.status === 'registered' ? 'Registrado, sin turnos' : client.status || '—')}</td><td>${esc((client.assignedTurnIds || []).map(id => { const t = state.catalog.turns.find(x => x.id === id); return t ? `${t.day} ${t.start} · ${t.discipline}` : id; }).join(', ') || 'Sin turnos')}</td></tr>`).join(''), ['ID', 'Nombre y apellido', 'Estado', 'Turnos asignados']) : '<div class="empty"><strong>Aún no hay clientes registrados</strong>Las nuevas cuentas aparecerán aquí automáticamente.</div>'}</section>`; }
 function turnsForDate(date) { const day = weekDays[date.getDay()]; return state.catalog.turns.filter(turn => turn.day === day); }
 function datePage() { const turns = turnsForDate(selectedDate); return `${heading(new Intl.DateTimeFormat('es-AR', { weekday: 'long', day: 'numeric', month: 'long' }).format(selectedDate), 'Abrí un turno para pasar asistencia.', '<button class="button" data-page="inicio">← Volver</button>')}<section class="card">${turns.length ? turns.map(turn => { const clients = state.clients.filter(client => (client.assignedTurnIds || []).includes(turn.id)); return `<div class="turn-day"><div class="turn-day-button"><span class="turn-hour">${esc(turn.start)}–${esc(turn.end)}</span><span><b>${esc(turn.discipline)}</b><small>${clients.length} clientes asignados</small></span><span class="vacancy-count">${Math.max(0, Number(turn.capacity) - clients.length)} vacantes</span></div><div class="roster">${clients.map(client => `<div class="roster-row"><span>${person(`${client.firstName} ${client.lastName}`)}<small class="roster-id">${esc(client.displayId || client.id)}</small></span><button class="button small" data-action="attendance" data-client="${client.clientUid}" data-turn="${esc(turn.id)}" data-status="present">Presente</button><button class="button small danger" data-action="attendance" data-client="${client.clientUid}" data-turn="${esc(turn.id)}" data-status="absent">Ausente</button></div>`).join('') || '<p class="small muted">No hay clientes asignados a este turno.</p>'}</div></div>`; }).join('') : '<div class="empty"><strong>No hay turnos configurados para este día</strong>Agregalos desde Configuración.</div>'}</section>`; }
-function cashPage() { if (!hasPaidPlan(state.gym)) return `${heading('Caja monetaria', 'Una herramienta incluida en los planes Pro y Gold.')}<section class="card locked-feature"><div class="locked-feature-icon">🔒</div><h2>Beneficio de la versión Pro</h2><p class="muted">La Caja y sus movimientos se conservan, pero para consultar o registrar movimientos necesitás tener activo GimAPP Pro o Gold.</p><button class="button primary" data-action="show-benefit" data-plan="pro" data-feature="Caja monetaria">Conocer el beneficio Pro</button></section>`; const rows = state.cash.map(entry => `<tr><td>${esc(entry.date)}</td><td>${esc(entry.category)}</td><td>${esc(entry.note || '—')}</td><td><span class="status ${entry.type === 'expense' ? 'absent' : ''}">${entry.type === 'income' ? 'Ingreso' : 'Egreso'}</span></td><td>${money.format(entry.amount)}</td></tr>`).join(''); const income = state.cash.filter(entry => entry.type === 'income').reduce((sum, entry) => sum + Number(entry.amount), 0); const expense = state.cash.filter(entry => entry.type === 'expense').reduce((sum, entry) => sum + Number(entry.amount), 0); return `${heading('Caja monetaria', 'Ingresos y egresos manuales, categorías y balance.', '<button class="button primary" data-action="new-cash">＋ Registrar movimiento</button>')}<section class="card"><div class="grid three"><div class="stat-card"><div><span class="muted small">Ingresos</span><div class="stat-value">${money.format(income)}</div></div></div><div class="stat-card"><div><span class="muted small">Egresos</span><div class="stat-value">${money.format(expense)}</div></div></div><div class="stat-card"><div><span class="muted small">Balance</span><div class="stat-value">${money.format(income - expense)}</div></div></div></div><div class="section-label">Movimientos</div>${rows ? table(rows, ['Fecha', 'Categoría', 'Detalle', 'Tipo', 'Importe']) : '<div class="empty"><strong>Sin movimientos</strong>Registrá un ingreso o egreso manual.</div>'}</section>`; }
+function cashPage() { if (!canManageGym()) return `${heading('Caja monetaria', 'Acceso reservado al dueño o administrador del gimnasio.')}<section class="card"><p class="muted">Tu rol no tiene permiso para consultar la Caja.</p></section>`; if (!hasPaidPlan(state.gym)) return `${heading('Caja monetaria', 'Una herramienta incluida en los planes Pro y Gold.')}<section class="card locked-feature"><div class="locked-feature-icon">🔒</div><h2>Beneficio de la versión Pro</h2><p class="muted">La Caja y sus movimientos se conservan, pero para consultar o registrar movimientos necesitás tener activo GimAPP Pro o Gold.</p><button class="button primary" data-action="show-benefit" data-plan="pro" data-feature="Caja monetaria">Conocer el beneficio Pro</button></section>`; const rows = state.cash.map(entry => `<tr><td>${esc(entry.date)}</td><td>${esc(entry.category)}</td><td>${esc(entry.note || '—')}</td><td><span class="status ${entry.type === 'expense' ? 'absent' : ''}">${entry.type === 'income' ? 'Ingreso' : 'Egreso'}</span></td><td>${money.format(entry.amount)}</td></tr>`).join(''); const income = state.cash.filter(entry => entry.type === 'income').reduce((sum, entry) => sum + Number(entry.amount), 0); const expense = state.cash.filter(entry => entry.type === 'expense').reduce((sum, entry) => sum + Number(entry.amount), 0); return `${heading('Caja monetaria', 'Ingresos y egresos manuales, categorías y balance.', '<button class="button primary" data-action="new-cash">＋ Registrar movimiento</button>')}<section class="card"><div class="grid three"><div class="stat-card"><div><span class="muted small">Ingresos</span><div class="stat-value">${money.format(income)}</div></div></div><div class="stat-card"><div><span class="muted small">Egresos</span><div class="stat-value">${money.format(expense)}</div></div></div><div class="stat-card"><div><span class="muted small">Balance</span><div class="stat-value">${money.format(income - expense)}</div></div></div></div><div class="section-label">Movimientos</div>${rows ? table(rows, ['Fecha', 'Categoría', 'Detalle', 'Tipo', 'Importe']) : '<div class="empty"><strong>Sin movimientos</strong>Registrá un ingreso o egreso manual.</div>'}</section>`; }
 function settingsPage() {
+  if (!canManageGym()) return `${heading('Configuración', 'Acceso reservado al dueño o administrador del gimnasio.')}<section class="card"><p class="muted">Tu rol no tiene permiso para modificar la configuración.</p></section>`;
   const turns = state.catalog.turns || [];
   const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
   const rows = turns.map((turn, index) => `<div class="schedule-editor-row" data-schedule-row data-turn-id="${esc(turn.id)}" data-enrolled="${Number(turn.enrolled)||0}" data-waitlist="${turn.waitlist !== false}">
@@ -89,6 +105,7 @@ function settingsPage() {
     </section>`;
 }
 function plansPage() {
+  if (membership.role !== 'owner') return `${heading('Planes de GimAPP', 'Solo el dueño del gimnasio puede gestionar el plan.')}<section class="card"><p class="muted">Consultá con el dueño del gimnasio para conocer el plan contratado.</p></section>`;
   const currentPlan = effectivePlan(state.gym);
   const currentLabel = ({ free: 'Gratis', pro: 'Pro', gold: 'Gold' })[currentPlan] || currentPlan;
   const latest = state.planRequests[0];
@@ -138,7 +155,12 @@ function plansPage() {
       ${membership.role !== 'owner' ? '<p class="small muted">Solo el dueño del gimnasio puede solicitar un cambio de plan.</p>' : ''}
     </section>`;
 }
-function view() { return ({ inicio: home, solicitudes: requestsPage, clientes: clientsPage, fecha: datePage, caja: cashPage, configuracion: settingsPage, planes: plansPage }[page] || home)(); }
+function view() {
+  if (['solicitudes', 'clientes', 'fecha'].includes(page) && !canManageAttendance()) page = 'inicio';
+  if (['caja', 'configuracion'].includes(page) && !canManageGym()) page = 'inicio';
+  if (page === 'planes' && membership.role !== 'owner') page = 'inicio';
+  return ({ inicio: home, solicitudes: requestsPage, clientes: clientsPage, fecha: datePage, caja: cashPage, configuracion: settingsPage, planes: plansPage }[page] || home)();
+}
 async function render() { app.innerHTML = '<div class="empty"><strong>Cargando…</strong></div>'; try { await load(); const content = view(); nav.querySelectorAll('.nav-item').forEach(item => item.classList.toggle('active', item.dataset.page === page)); app.innerHTML = content; } catch (error) { app.innerHTML = `<div class="empty"><strong>No se pudieron cargar los datos</strong>${esc(error.message)}</div>`; } }
 
 function showBenefitModal(requiredPlan, feature) {
