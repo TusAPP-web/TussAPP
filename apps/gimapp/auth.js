@@ -21,6 +21,7 @@ import {
 } from 'https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js';
 import { APP_CONFIG } from './config.js';
 import { getFirebaseServices } from './firebase.js';
+import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/13.1.0/firebase-functions.js';
 
 function cleanText(value) {
   return String(value || '').trim().replace(/\s+/g, ' ');
@@ -117,4 +118,32 @@ export async function requestPasswordReset(email) {
 export async function signOutUser() {
   const { auth } = await getFirebaseServices();
   await signOut(auth);
+}
+
+
+// Acceso específico para aceptar una invitación: no exige membresía previa.
+export async function signInForTeamInvitation({ email, password }) {
+  const { auth } = await getFirebaseServices();
+  const credential = await signInWithEmailAndPassword(auth, cleanText(email), password);
+  return credential.user;
+}
+
+export async function signInForTeamInvitationWithGoogle() {
+  const { auth } = await getFirebaseServices();
+  const credential = await signInWithPopup(auth, googleProvider());
+  return credential.user;
+}
+
+export async function registerForTeamInvitation({ email, password }) {
+  const { auth } = await getFirebaseServices();
+  const credential = await createUserWithEmailAndPassword(auth, cleanText(email), password);
+  await sendEmailVerification(credential.user);
+  return credential.user;
+}
+
+export async function acceptTeamInvitation({ gymId, invitationId }) {
+  const { app } = await getFirebaseServices();
+  const accept = httpsCallable(getFunctions(app, 'southamerica-east1'), 'acceptTeamInvitation');
+  const result = await accept({ gymId, invitationId });
+  return result.data;
 }
