@@ -77,6 +77,69 @@ function validateTurns(gym, turnIds) {
   return [...new Set(turnIds)];
 }
 
+
+function memberHasPermission(member, gym, permission) {
+  if (member.role === 'owner') return true;
+  if (!member.permissions && member.role === 'complete') return true;
+  const goldOnly = ['approveRequests', 'manageSchedule', 'manageClients', 'manageCatalog'];
+  if (goldOnly.includes(permission) && !(gym.plan === 'gold' &&
+      (!gym.planExpiresAt || gym.planExpiresAt.toMillis() > Date.now()))) return false;
+  if (member.permissions) return member.permissions[permission] === true;
+  if (member.role === 'intermediate') {
+    return ['viewSchedule', 'viewClients', 'viewRequests', 'takeAttendance'].includes(permission);
+  }
+  return member.role === 'basic' && permission === 'viewSchedule';
+}
+
+exports.getGymWorkspace = onCall(options, async request => {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Iniciá sesión.');
+  const gymId = text(request.data?.gymId, 'el gimnasio', 128);
+  if (!validId(gymId)) throw new HttpsError('invalid-argument', 'El identificador del gimnasio no es válido.');
+  const uid = request.auth.uid;
+  const [gymSnap, memberSnap, catalogSnap] = await Promise.all([
+    db.doc('gyms/' + gymId).get(),
+    db.doc('gyms/' + gymId + '/team/' + uid).get(),
+    db.doc('publicCatalog/' + gymId).get(),
+  ]);
+  if (!gymSnap.exists || !memberSnap.exists || memberSnap.data().uid !== uid || memberSnap.data().active !== true) {
+    throw new HttpsError('permission-denied', 'No tenés acceso activo a este gimnasio.');
+  }
+  const gym = gymSnap.data();
+  const member = memberSnap.data();
+  const catalog = catalogSnap.exists ? catalogSnap.data() : {};
+  const canViewSchedule = ['viewSchedule', 'takeAttendance', 'manageSchedule', 'manageCatalog']
+    .some(permission => memberHasPermission(member, gym, permission));
+  const canManageAllTurns = member.role === 'owner' ||
+    (!member.permissions && member.role === 'complete') ||
+    memberHasPermission(member, gym, 'manageSchedule') ||
+    memberHasPermission(member, gym, 'manageCatalog');
+  const allTurns = Array.isArray(gym.scheduleTurns) ? gym.scheduleTurns
+    : (Array.isArray(catalog.turns) ? catalog.turns : []);
+  const assigned = Array.isArray(member.assignedTurnIds) ? member.assignedTurnIds : [];
+  const visibleTurns = !canViewSchedule ? []
+    : canManageAllTurns ? allTurns
+    : allTurns.filter(turn => assigned.includes(turn.id));
+  const planExpiresAt = gym.planExpiresAt?.toDate?.().toISOString() || null;
+  return {
+    gym: {
+      id: gymId,
+      name: gym.name || '',
+      plan: gym.plan || 'free',
+      planSource: gym.planSource || 'free',
+      planGrantReason: gym.planGrantReason || '',
+      planExpiresAt,
+      absenceNoticeHours: Number(gym.absenceNoticeHours || 12),
+      allowScheduleOverlaps: gym.allowScheduleOverlaps === true,
+    },
+    catalog: {
+      gymName: catalog.gymName || gym.name || '',
+      turns: visibleTurns,
+      published: catalog.published === true,
+      allowScheduleOverlaps: gym.allowScheduleOverlaps === true,
+    },
+  };
+});
+
 exports.createTeamInvitation = onCall(options, async request => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'Iniciá sesión.');
   const gymId = text(request.data?.gymId, 'el gimnasio', 128);
