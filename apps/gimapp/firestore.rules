@@ -11,7 +11,9 @@ service cloud.firestore {
         && (!('planExpiresAt' in gym) || gym.planExpiresAt == null || gym.planExpiresAt > request.time);
     }
     function hasPermission(gymId, permission) {
-      return activeMember(gymId) && (
+      let gym = get(/databases/$(database)/documents/gyms/$(gymId)).data;
+      let goldOnly = permission in ['manageSchedule', 'manageClients', 'viewReports', 'manageCatalog'];
+      return activeMember(gymId) && (!goldOnly || gym.plan == 'gold') && (
         teamRecord(gymId).data.role == 'owner' ||
         (('permissions' in teamRecord(gymId).data) && teamRecord(gymId).data.permissions[permission] == true) ||
         (!('permissions' in teamRecord(gymId).data) && (
