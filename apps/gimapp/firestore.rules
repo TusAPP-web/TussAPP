@@ -22,6 +22,7 @@ service cloud.firestore {
       );
     }
     function administrator(gymId) { return activeMember(gymId) && (teamRecord(gymId).data.role == 'owner' || (teamRecord(gymId).data.role == 'complete' && !('permissions' in teamRecord(gymId).data))); }
+    function gymOwner(gymId) { return activeMember(gymId) && teamRecord(gymId).data.role == 'owner' && get(/databases/$(database)/documents/gyms/$(gymId)).data.ownerUid == request.auth.uid; }
     function assignedToTurn(gymId, turnId) {
       return activeMember(gymId) && (teamRecord(gymId).data.role == 'owner' ||
         (!('permissions' in teamRecord(gymId).data) && teamRecord(gymId).data.role in ['complete', 'intermediate']) ||
@@ -48,7 +49,7 @@ service cloud.firestore {
     match /publicCatalog/{gymId} {
       allow get: if resource.data.published == true || activeMember(gymId);
       allow list: if false;
-      allow create, update, delete: if administrator(gymId);
+      allow create, update, delete: if hasPermission(gymId, 'manageCatalog');
     }
     match /gyms/{gymId} {
       allow create: if signedIn()
@@ -57,7 +58,7 @@ service cloud.firestore {
         && request.resource.data.plan == 'free'
         && request.resource.data.keys().hasOnly(['name', 'ownerUid', 'plan', 'status', 'createdAt', 'updatedAt']);
       allow read: if activeMember(gymId);
-      allow update: if administrator(gymId)
+      allow update: if hasPermission(gymId, 'manageSchedule')
         && request.resource.data.ownerUid == resource.data.ownerUid
         && request.resource.data.plan == resource.data.plan
         && request.resource.data.status == resource.data.status
@@ -70,11 +71,11 @@ service cloud.firestore {
           && request.resource.data.keys().hasOnly(['uid', 'name', 'email', 'role', 'active', 'createdAt'])
           && request.resource.data.role in ['owner', 'complete', 'intermediate', 'basic', 'staff']
           && request.resource.data.active is bool
-          && (administrator(gymId) || (userUid == request.auth.uid
+          && (gymOwner(gymId) || (userUid == request.auth.uid
             && request.resource.data.role == 'owner'
             && request.resource.data.active == true
             && getAfter(/databases/$(database)/documents/gyms/$(gymId)).data.ownerUid == request.auth.uid));
-        allow update, delete: if administrator(gymId);
+        allow update, delete: if gymOwner(gymId);
       }
       match /clients/{clientUid} {
         allow get: if clientIsSelf() || hasPermission(gymId, 'viewClients');
