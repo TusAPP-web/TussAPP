@@ -125,7 +125,7 @@ function plansPage() {
     </section>`;
 }
 function view() { if (page === 'caja' && !['pro', 'gold'].includes(state.gym?.plan)) page = 'planes'; return ({ inicio: home, solicitudes: requestsPage, clientes: clientsPage, fecha: datePage, caja: cashPage, configuracion: settingsPage, planes: plansPage }[page] || home)(); }
-async function render() { app.innerHTML = '<div class="empty"><strong>Cargando…</strong></div>'; try { await load(); nav.querySelectorAll('.nav-item').forEach(item => item.classList.toggle('active', item.dataset.page === page)); app.innerHTML = view(); } catch (error) { app.innerHTML = `<div class="empty"><strong>No se pudieron cargar los datos</strong>${esc(error.message)}</div>`; } }
+async function render() { app.innerHTML = '<div class="empty"><strong>Cargando…</strong></div>'; try { await load(); const content = view(); nav.querySelectorAll('.nav-item').forEach(item => item.classList.toggle('active', item.dataset.page === page)); app.innerHTML = content; } catch (error) { app.innerHTML = `<div class="empty"><strong>No se pudieron cargar los datos</strong>${esc(error.message)}</div>`; } }
 
 nav.addEventListener('click', event => { const item = event.target.closest('[data-page]'); if (item) { page = item.dataset.page; render(); } });
 document.addEventListener('click', async event => {
