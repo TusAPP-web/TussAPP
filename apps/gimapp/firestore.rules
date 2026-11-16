@@ -12,7 +12,7 @@ service cloud.firestore {
     }
     function hasPermission(gymId, permission) {
       let gym = get(/databases/$(database)/documents/gyms/$(gymId)).data;
-      let goldOnly = permission in ['manageSchedule', 'manageClients', 'viewReports', 'manageCatalog'];
+      let goldOnly = permission in ['manageSchedule', 'manageClients', 'manageCatalog'];
       return activeMember(gymId) && (!goldOnly || (gym.plan == 'gold' && paidPlan(gymId))) && (
         teamRecord(gymId).data.role == 'owner' ||
         (('permissions' in teamRecord(gymId).data) && teamRecord(gymId).data.permissions[permission] == true) ||
