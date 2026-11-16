@@ -33,7 +33,8 @@ async function verifyEmail(user) {
   });
   const signedIn = await signInResponse.json();
   assert.equal(signInResponse.ok, true, JSON.stringify(signedIn));
-  assert.equal(signedIn.emailVerified, true, JSON.stringify(signedIn));
+  const claims = JSON.parse(Buffer.from(signedIn.idToken.split('.')[1], 'base64url').toString('utf8'));
+  assert.equal(claims.email_verified, true, JSON.stringify(claims));
   return signedIn;
 }
 async function call(name, token, data) {
