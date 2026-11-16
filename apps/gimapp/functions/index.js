@@ -524,3 +524,6 @@ exports.resolvePlanChangeRequest = onCall(options, async (request) => {
     return { success: true, status: nextStatus };
   });
 });
+
+// Gestión segura de equipo, invitaciones, cupos y permisos individuales.
+Object.assign(exports, require('./team'));
