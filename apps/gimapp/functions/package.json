@@ -6,7 +6,7 @@
   },
   "main": "index.js",
   "scripts": {
-    "lint": "node --check index.js && node --check test/emulator.integration.js && node --check test/security.rules.integration.js && node --check ../panel/live-panel.js && node --check ../admin/admin.js",
+    "lint": "node --check index.js && node --check test/emulator.integration.js && node --check test/security.rules.integration.js && node --input-type=module --check < ../panel/live-panel.js && node --input-type=module --check < ../admin/admin.js",
     "test:emulator": "node test/emulator.integration.js && node test/security.rules.integration.js"
   },
   "dependencies": {
