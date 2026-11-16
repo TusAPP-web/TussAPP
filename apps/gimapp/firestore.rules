@@ -121,7 +121,7 @@ service cloud.firestore {
         allow get, list: if activeMember(gymId) && teamRecord(gymId).data.role == 'owner';
         allow create, update, delete: if false;
       }
-      match /audit/{entryId} { allow read: if administrator(gymId); allow create: if activeMember(gymId); allow update, delete: if false; }
+      match /audit/{entryId} { allow read: if administrator(gymId); allow create: if hasPermission(gymId, 'approveRequests'); allow update, delete: if false; }
     }
   }
 }
