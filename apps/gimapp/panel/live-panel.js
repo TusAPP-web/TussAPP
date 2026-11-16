@@ -153,7 +153,13 @@ function teamPage() {
   const accountCount = members.filter(member => member.active).length + invitations.length;
   const atProLimit = plan === 'pro' && accountCount >= 3;
   if (!['pro', 'gold'].includes(plan)) {
-    return `${heading('Equipo', 'Sumá profesionales y organizá sus horarios y permisos.')}<section class="card locked-feature"><div class="locked-feature-icon">🔒</div><h2>Disponible en Pro y Gold</h2><p class="muted">El plan Gratis incluye una sola cuenta: la del dueño. Pro permite hasta 3 cuentas en total; Gold permite usuarios internos ilimitados y permisos avanzados.</p><button class="button primary" data-page="planes">Conocer planes</button></section>`;
+    const linkedMembers = members.filter(member => member.role !== 'owner' && member.active).map(member =>
+      `<div class="team-invitation-row"><div><b>${esc(member.name || 'Empleado')}</b><p class="small muted">${esc(member.email || '')} · Acceso bloqueado por plan</p></div><button class="button small danger" data-action="deactivate-team-member" data-uid="${esc(member.uid)}">Desactivar cuenta</button></div>`).join('');
+    const pendingInvites = invitations.map(invite =>
+      `<div class="team-invitation-row"><div><b>${esc(invite.email)}</b><p class="small muted">Invitación pendiente</p></div><button class="button small danger" data-action="revoke-team-invitation" data-id="${esc(invite.id)}">Revocar</button></div>`).join('');
+    return `${heading('Equipo', 'Sumá profesionales y organizá sus horarios y permisos.')}
+      <section class="card locked-feature"><div class="locked-feature-icon">🔒</div><h2>Disponible en Pro y Gold</h2><p class="muted">El plan Gratis incluye una sola cuenta: la del dueño. Pro permite hasta 3 cuentas en total; Gold permite usuarios internos ilimitados y permisos avanzados.</p><button class="button primary" data-page="planes">Conocer planes</button></section>
+      <section class="card"><h2>Cuentas vinculadas</h2><p class="small muted">Los empleados no pueden ingresar mientras el gimnasio esté en Gratis. Podés desactivar las cuentas sobrantes; sus datos y registros históricos se conservan.</p>${linkedMembers || '<p class="small muted">No hay empleados activos.</p>'}${pendingInvites}</section>`;
   }
   const permissionInputs = (selected = {}, prefix = 'new') => teamPermissionLabels.map(([key, label]) => {
     const disabled = plan !== 'gold' && goldOnlyPermissions.has(key);
