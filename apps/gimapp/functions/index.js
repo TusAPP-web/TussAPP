@@ -288,6 +288,32 @@ exports.requestPlanChange = onCall(options, async (request) => {
   });
 });
 
+exports.listPendingPlanChangeRequests = onCall(options, async (request) => {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Iniciá sesión.');
+  const adminSnap = await db.doc('platformAdmins/' + request.auth.uid).get();
+  if (!adminSnap.exists || adminSnap.data().active !== true) {
+    throw new HttpsError('permission-denied', 'No tenés autorización para administrar planes de TusAPP.');
+  }
+  const snapshot = await db.collectionGroup('planRequests')
+    .where('status', '==', 'pending')
+    .limit(100)
+    .get();
+  const items = snapshot.docs.map(item => {
+    const gymRef = item.ref.parent.parent;
+    const data = item.data();
+    return {
+      id: item.id,
+      gymId: gymRef?.id || '',
+      gymName: data.gymName || '',
+      currentPlan: data.currentPlan || 'free',
+      requestedPlan: data.requestedPlan || '',
+      createdAt: data.createdAt?.toDate?.().toISOString() || null,
+    };
+  });
+  items.sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+  return { requests: items };
+});
+
 exports.resolvePlanChangeRequest = onCall(options, async (request) => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'Iniciá sesión.');
   const gymId = required(request.data?.gymId, 'el gimnasio', 128);
