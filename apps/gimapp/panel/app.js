@@ -1,6 +1,6 @@
 // GimAPP · versión 0.1 · 3 de noviembre de 2026.
 import { signOutUser } from '../auth.js?v=20261115-team-1';
-import { requireStaffSession } from './session.js';
+import { requireStaffSession } from './session.js?v=20261115-team-1';
 
 const session = await requireStaffSession();
 if (session) {
