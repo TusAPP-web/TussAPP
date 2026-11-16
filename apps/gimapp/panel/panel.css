@@ -7,3 +7,11 @@
 .catalog-hero .help-asterisk{color:#fff}
 
 .schedule-editor-row{display:grid;grid-template-columns:1fr 110px 110px 1.2fr 1.2fr 80px auto;gap:9px;align-items:end;padding:12px 0;border-bottom:1px solid var(--line)}.schedule-editor-row .field{margin:0}.schedule-editor-row .button{margin-bottom:12px}@media(max-width:900px){.schedule-editor-row{grid-template-columns:repeat(2,minmax(0,1fr))}.schedule-editor-row .button{margin:0 0 12px}}
+
+/* Acceso visible a beneficios bloqueados por plan. */
+.nav-item.locked::after{content:'🔒';margin-left:auto;font-size:10px;opacity:.7}
+.locked-feature{display:grid;justify-items:start;gap:12px;max-width:680px;padding:26px}
+.locked-feature-icon{width:42px;height:42px;display:grid;place-items:center;border-radius:12px;background:#fff4df;font-size:19px}
+.locked-feature h2{margin:0}
+.locked-feature p{max-width:560px;line-height:1.6;margin:0}
+@media(max-width:650px){.nav-item.locked::after{content:'🔒';font-size:8px;margin-left:0;position:absolute;right:2px;top:3px}.nav-item{position:relative}}
