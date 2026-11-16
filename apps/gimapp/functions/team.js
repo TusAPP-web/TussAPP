@@ -106,6 +106,9 @@ exports.getGymWorkspace = onCall(options, async request => {
   }
   const gym = gymSnap.data();
   const member = memberSnap.data();
+  if (member.role !== 'owner' && !planIsActive(gym)) {
+    throw new HttpsError('permission-denied', 'El acceso de empleados requiere un plan Pro o Gold activo.');
+  }
   const catalog = catalogSnap.exists ? catalogSnap.data() : {};
   const canViewSchedule = ['viewSchedule', 'takeAttendance', 'manageSchedule', 'manageCatalog']
     .some(permission => memberHasPermission(member, gym, permission));
