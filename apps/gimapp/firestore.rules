@@ -30,7 +30,7 @@ service cloud.firestore {
       allow delete: if false;
     }
     match /publicCatalog/{gymId} {
-      allow get: if resource.data.published == true || administrator(gymId);
+      allow get: if resource.data.published == true || activeMember(gymId);
       allow list: if false;
       allow create, update, delete: if administrator(gymId);
     }
