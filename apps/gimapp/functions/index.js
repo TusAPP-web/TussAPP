@@ -368,6 +368,65 @@ exports.grantPlanManually = onCall(options, async (request) => {
   });
 });
 
+// Permite cambiar la fecha de vencimiento de una habilitación manual ya existente.
+exports.updateManualPlanExpiry = onCall(options, async (request) => {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Iniciá sesión.');
+  const adminUid = request.auth.uid;
+  const adminSnap = await db.doc('platformAdmins/' + adminUid).get();
+  if (!adminSnap.exists || adminSnap.data().active !== true) {
+    throw new HttpsError('permission-denied', 'No tenés autorización para administrar planes de TusAPP.');
+  }
+  const gymId = required(request.data?.gymId, 'el identificador del gimnasio', 128);
+  const reason = required(request.data?.reason, 'el motivo del cambio', 500);
+  if (!/^[A-Za-z0-9_-]+$/.test(gymId)) {
+    throw new HttpsError('invalid-argument', 'El identificador del gimnasio no es válido.');
+  }
+  let expiresAt = null;
+  if (request.data?.expiresAt !== null && request.data?.expiresAt !== '') {
+    if (typeof request.data.expiresAt !== 'string') {
+      throw new HttpsError('invalid-argument', 'La fecha de vencimiento no es válida.');
+    }
+    const date = new Date(request.data.expiresAt);
+    if (Number.isNaN(date.getTime()) || date.getTime() <= Date.now()) {
+      throw new HttpsError('invalid-argument', 'La fecha de vencimiento debe ser futura.');
+    }
+    if (date.getTime() > Date.now() + 366 * 24 * 60 * 60 * 1000) {
+      throw new HttpsError('invalid-argument', 'La fecha no puede superar 366 días.');
+    }
+    expiresAt = Timestamp.fromDate(date);
+  }
+  const gymRef = db.doc('gyms/' + gymId);
+  const auditRef = db.collection('gyms/' + gymId + '/audit').doc();
+  return db.runTransaction(async tx => {
+    const gymSnap = await tx.get(gymRef);
+    if (!gymSnap.exists) throw new HttpsError('not-found', 'No se encontró el gimnasio indicado.');
+    const gym = gymSnap.data();
+    if (gym.planSource !== 'manual' || !['pro', 'gold'].includes(gym.plan)) {
+      throw new HttpsError('failed-precondition', 'El gimnasio no tiene una habilitación manual Pro o Gold vigente para modificar.');
+    }
+    const previousExpiresAt = gym.planExpiresAt || null;
+    tx.update(gymRef, {
+      planExpiresAt: expiresAt,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    tx.create(auditRef, {
+      type: 'manual-plan-expiry-updated',
+      plan: gym.plan,
+      previousExpiresAt,
+      expiresAt,
+      changedBy: adminUid,
+      reason,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    return {
+      success: true,
+      gymId,
+      plan: gym.plan,
+      expiresAt: expiresAt?.toDate().toISOString() || null,
+    };
+  });
+});
+
 // Las habilitaciones temporales vencidas vuelven a Gratis automáticamente.
 // Una suscripción paga o una nueva habilitación manual nunca se revierte por un vencimiento antiguo.
 exports.expireManualPlanGrants = onSchedule({
