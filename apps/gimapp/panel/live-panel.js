@@ -69,7 +69,7 @@ async function load() {
   const canAdmin = canManageGym();
   const [requests, clients, cash, planRequests, team] = await Promise.all([
     (can('viewRequests') || can('approveRequests')) ? getPendingRequests(membership.gymId) : Promise.resolve([]),
-    (can('viewClients') || can('takeAttendance')) ? getClients(membership.gymId) : Promise.resolve([]),
+    (can('viewClients') || can('manageClients')) ? getClients(membership.gymId) : can('takeAttendance') ? getClients(membership.gymId, membership.assignedTurnIds || []) : Promise.resolve([]),
     can('manageCash') && hasPaidPlan(gym) ? getCashEntries(membership.gymId) : Promise.resolve([]),
     membership.role === 'owner' ? getPlanRequests(membership.gymId) : Promise.resolve([]),
     membership.role === 'owner' ? listTeam(membership.gymId) : Promise.resolve({ members: [], invitations: [], plan: effectivePlan(gym) }),
@@ -79,7 +79,7 @@ async function load() {
   document.querySelectorAll('[data-plan-name]').forEach(el => { el.textContent = effectivePlan(gym) === 'free' ? 'Gratis' : effectivePlan(gym).toUpperCase(); });
   const navRules = {
     solicitudes: can('viewRequests') || can('approveRequests'),
-    clientes: can('viewClients') || can('takeAttendance'),
+    clientes: can('viewClients') || can('manageClients') || can('takeAttendance'),
     equipo: membership.role === 'owner',
     caja: can('manageCash'),
     planes: membership.role === 'owner',
@@ -263,7 +263,7 @@ function plansPage() {
 }
 function view() {
   if (page === 'solicitudes' && !(can('viewRequests') || can('approveRequests'))) page = 'inicio';
-  if (page === 'clientes' && !(can('viewClients') || can('takeAttendance'))) page = 'inicio';
+  if (page === 'clientes' && !(can('viewClients') || can('manageClients') || can('takeAttendance'))) page = 'inicio';
   if (page === 'fecha' && !(can('viewSchedule') || can('takeAttendance'))) page = 'inicio';
   if (page === 'caja' && !can('manageCash')) page = 'inicio';
   if (page === 'configuracion' && !canManageGym()) page = 'inicio';
