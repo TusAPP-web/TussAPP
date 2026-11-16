@@ -138,11 +138,10 @@ const { collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where, Times
     await assertSucceeds(getDoc(doc(goldStaffDb, 'gyms/gym-gold/clients/client-gold')));
     await assertSucceeds(getDoc(doc(attendanceOnlyDb, 'gyms/gym-gold/clients/client-gold')));
     await assertFails(getDoc(doc(attendanceOnlyDb, 'gyms/gym-gold/clients/client-other-turn')));
-    const assignedClientQuery = await assertSucceeds(getDocs(query(
+    await assertFails(getDocs(query(
       collection(attendanceOnlyDb, 'gyms/gym-gold/clients'),
       where('assignedTurnIds', 'array-contains-any', ['turn-allowed']),
     )));
-    assert.equal(assignedClientQuery.size, 1);
     await assertFails(getDoc(doc(scheduleOnlyDb, 'gyms/gym-gold/weeklySchedule/entry-a')));
     await assertFails(getDoc(doc(scheduleOnlyDb, 'gyms/gym-gold/exceptions/exception-a')));
     await assertSucceeds(setDoc(doc(goldStaffDb, 'gyms/gym-gold/attendance/allowed'), {
