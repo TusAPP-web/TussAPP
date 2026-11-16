@@ -160,10 +160,17 @@ function teamPage() {
   const turnInputs = (selected = [], prefix = 'new') => (state.catalog.turns || []).map(turn =>
     `<label class="team-check"><input type="checkbox" value="${esc(turn.id)}" ${selected.includes(turn.id) ? 'checked' : ''} data-turn="${esc(turn.id)}" ${prefix === 'new' ? 'data-new-turn' : ''}><span>${esc(turn.day)} · ${esc(turn.start)} · ${esc(turn.discipline)}</span></label>`
   ).join('') || '<p class="small muted">Primero configurá horarios para poder asignarlos.</p>';
+  const legacyPermissions = member => {
+    if (member.permissions && Object.keys(member.permissions).length) return member.permissions;
+    const defaults = member.role === 'complete' ? teamPermissionLabels.map(([key]) => key)
+      : member.role === 'intermediate' ? ['viewSchedule', 'viewClients', 'viewRequests', 'takeAttendance']
+      : member.role === 'basic' ? ['viewSchedule'] : [];
+    return Object.fromEntries(defaults.map(key => [key, true]));
+  };
   const memberCards = members.filter(member => member.role !== 'owner' && member.active).map(member => `
     <article class="team-member card" data-team-member data-uid="${esc(member.uid)}">
       <div class="card-head"><div><h3>${esc(member.name || 'Empleado')}</h3><p class="small muted">${esc(member.email || '')}</p></div><span class="status">${member.active ? 'Activo' : 'Inactivo'}</span></div>
-      <div class="section-label">Permisos individuales</div><div class="team-check-grid">${permissionInputs(member.permissions || {}, 'member')}</div>
+      <div class="section-label">Permisos individuales</div><div class="team-check-grid">${permissionInputs(legacyPermissions(member), 'member')}</div>
       <div class="section-label">Horarios asignados</div><div class="team-check-grid">${turnInputs(member.assignedTurnIds || [], 'member')}</div>
       <div class="team-actions"><button class="button primary small" data-action="save-team-member" data-uid="${esc(member.uid)}">Guardar cambios</button><button class="button danger small" data-action="deactivate-team-member" data-uid="${esc(member.uid)}">Desactivar acceso</button></div>
     </article>`).join('');
@@ -330,6 +337,7 @@ document.addEventListener('click', async event => {
       toast(error?.message || 'No se pudo enviar la solicitud.');
     }
   }
+  if (action === 'attendance' && !can('takeAttendance')) { toast('Tu cuenta no tiene permiso para registrar asistencia.'); return; }
   if (action === 'attendance') { await saveAttendance({ gymId: membership.gymId, trainerUid: user.uid, clientUid: button.dataset.client, turnId: button.dataset.turn, date: dateKey(selectedDate), status: button.dataset.status }); toast('Asistencia guardada.'); }
   if (action === 'show-benefit') { showBenefitModal(button.dataset.plan || 'pro', button.dataset.feature || 'Esta herramienta'); return; }
   if (action === 'new-cash' && !hasPaidPlan(state.gym)) { showBenefitModal('pro', 'Caja monetaria'); return; }
