@@ -5,6 +5,7 @@ service cloud.firestore {
     function signedIn() { return request.auth != null; }
     function teamRecord(gymId) { return get(/databases/$(database)/documents/gyms/$(gymId)/team/$(request.auth.uid)); }
     function activeMember(gymId) { return signedIn() && exists(/databases/$(database)/documents/gyms/$(gymId)/team/$(request.auth.uid)) && teamRecord(gymId).data.active == true; }
+    function paidPlan(gymId) { return get(/databases/$(database)/documents/gyms/$(gymId)).data.plan in ['pro', 'gold']; }
     function administrator(gymId) { return activeMember(gymId) && teamRecord(gymId).data.role in ['owner', 'complete']; }
     function attendanceManager(gymId) { return activeMember(gymId) && teamRecord(gymId).data.role in ['owner', 'complete', 'intermediate']; }
     function clientIsSelf() { return signedIn() && resource.data.clientUid == request.auth.uid; }
@@ -79,7 +80,7 @@ service cloud.firestore {
         allow update: if attendanceManager(gymId) || (activeMember(gymId) && resource.data.trainerUid == request.auth.uid && request.resource.data.trainerUid == request.auth.uid);
         allow delete: if administrator(gymId);
       }
-      match /cash/{entryId} { allow read, create, update: if administrator(gymId); allow delete: if false; }
+      match /cash/{entryId} { allow read, create, update: if administrator(gymId) && paidPlan(gymId); allow delete: if false; }
       match /weeklySchedule/{entryId} { allow read: if activeMember(gymId); allow write: if administrator(gymId); }
       match /exceptions/{entryId} { allow read: if activeMember(gymId); allow write: if administrator(gymId); }
       match /planRequests/{requestId} {
