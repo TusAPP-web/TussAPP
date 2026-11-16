@@ -212,8 +212,9 @@ function plansPage() {
     : latest?.status === 'rejected' ? 'Solicitud anterior rechazada' : '';
   const canRequestPro = membership.role === 'owner' && currentPlan === 'free' && !lockedRequest;
   const canRequestGold = membership.role === 'owner' && currentPlan !== 'gold' && !lockedRequest;
+  const grantExpiry = state.gym.planExpiresAt ? new Date(state.gym.planExpiresAt?.toDate ? state.gym.planExpiresAt.toDate() : state.gym.planExpiresAt) : null;
   const manualGrantNotice = state.gym.planSource === 'manual' && ['pro', 'gold'].includes(currentPlan)
-    ? `<div class="notice">Este gimnasio tiene una habilitación gratuita de prueba${state.gym.planExpiresAt?.toDate ? ' hasta el ' + esc(state.gym.planExpiresAt.toDate().toLocaleDateString('es-AR')) : ' permanente'}.</div>`
+    ? `<div class="notice">Este gimnasio tiene una habilitación gratuita de prueba${grantExpiry && !Number.isNaN(grantExpiry.getTime()) ? ' hasta el ' + esc(grantExpiry.toLocaleDateString('es-AR')) : ' permanente'}.</div>`
     : '';
   const requestButton = (plan, enabled) => enabled
     ? `<button class="button primary full" data-action="request-plan" data-plan="${plan}">Solicitar migración a ${plan === 'pro' ? 'Pro' : 'Gold'}</button>`
