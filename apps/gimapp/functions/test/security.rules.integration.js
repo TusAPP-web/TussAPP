@@ -74,6 +74,12 @@ const { doc, getDoc, setDoc, updateDoc, Timestamp } = require('firebase/firestor
     await assertFails(getDoc(doc(ownerDb, 'gyms/gym-rules/cash/cash-free')));
     await assertSucceeds(getDoc(doc(proOwnerDb, 'gyms/gym-pro/cash/cash-pro')));
     await assertFails(getDoc(doc(expiredOwnerDb, 'gyms/gym-expired/cash/cash-expired')));
+    await env.withSecurityRulesDisabled(async context => {
+      const retainedCash = await getDoc(doc(context.firestore(), 'gyms/gym-expired/cash/cash-expired'));
+      assert.equal(retainedCash.exists(), true, 'El vencimiento bloquea el acceso, pero no elimina los datos de Caja.');
+      assert.equal(retainedCash.data().amount, 100);
+    });
+
     await assertFails(setDoc(doc(ownerDb, 'gyms/gym-rules/planRequests/direct'), {
       requestedPlan: 'pro', status: 'pending',
     }));
