@@ -145,6 +145,9 @@ exports.acceptTeamInvitation = onCall(options, async request => {
     if (userSnap.exists && userSnap.data().accountType !== 'staff') {
       throw new HttpsError('failed-precondition', 'Esta cuenta ya está vinculada a otro tipo de perfil. Usá una cuenta separada para el equipo.');
     }
+    if (userSnap.exists && userSnap.data().currentGymId && userSnap.data().currentGymId !== gymId) {
+      throw new HttpsError('failed-precondition', 'Esta cuenta ya está vinculada a otro gimnasio.');
+    }
     const seats = await countReservedSeats(tx, gymRef);
     if (gym.plan === 'pro' && seats > 3) {
       throw new HttpsError('resource-exhausted', 'Se alcanzó el máximo de 3 cuentas del plan Pro.');
