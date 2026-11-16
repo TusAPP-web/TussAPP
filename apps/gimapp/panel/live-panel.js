@@ -157,7 +157,7 @@ nav.addEventListener('click', event => {
 });
 document.addEventListener('click', async event => {
   const button = event.target.closest('[data-action], [data-date], [data-page], [data-close]'); if (!button) return;
-  if (button.dataset.page) { event.preventDefault(); page = button.dataset.page; render(); return; }
+  if (button.dataset.page) { event.preventDefault(); if (modal.open) modal.close(); page = button.dataset.page; render(); return; }
   if (button.dataset.date) { selectedDate = new Date(`${button.dataset.date}T12:00:00`); page = 'fecha'; render(); return; }
   const action = button.dataset.action;
   if (action === 'today') { month = new Date(); render(); }
