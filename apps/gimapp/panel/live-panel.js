@@ -1,5 +1,5 @@
 // GimAPP · versión 0.1 · 3 de noviembre de 2026.
-import { approveRequest, addCashEntry, createTeamInvitation, deactivateTeamMember, getCatalogConfiguration, getCashEntries, getClients, getGymProfile, getPendingRequests, getPlanRequests, listTeam, rejectRequest, requestPlanChange, revokeTeamInvitation, saveAttendance, saveGymSchedule, savePublicCatalog, updateGymProfile, updateTeamMember } from './data.js';
+import { approveRequest, addCashEntry, createTeamInvitation, deactivateTeamMember, getCatalogConfiguration, getCashEntries, getClients, getGymProfile, getPendingRequests, getPlanRequests, listTeam, rejectRequest, requestPlanChange, revokeTeamInvitation, saveAttendance, saveGymSchedule, savePublicCatalog, updateGymProfile, updateTeamMember } from './data.js?v=20261115-team-1';
 
 const app = document.querySelector('#app');
 const nav = document.querySelector('#main-nav');
