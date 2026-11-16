@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Administración privada de GimAPP por TusAPP.">
+  <title>TusAPP | Administración de GimAPP</title>
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="header">
+      <div><span class="eyebrow">TUSAPP · ADMINISTRACIÓN CENTRAL</span><h1>Solicitudes de planes</h1></div>
+      <button id="sign-out" class="button secondary" hidden>Cerrar sesión</button>
+    </header>
+    <section id="login-view" class="card">
+      <h2>Acceso de administración</h2>
+      <p>Ingresá con la cuenta autorizada de TusAPP.</p>
+      <form id="login-form">
+        <label>Correo electrónico<input name="email" type="email" autocomplete="username" required></label>
+        <label>Contraseña<input name="password" type="password" autocomplete="current-password" required></label>
+        <button class="button primary" type="submit">Ingresar</button>
+      </form>
+      <button id="google-login" class="button secondary">Continuar con Google</button>
+      <p id="login-message" class="message" aria-live="polite"></p>
+    </section>
+    <section id="admin-view" hidden>
+      <div class="toolbar"><p id="admin-identity" class="muted"></p><button id="refresh" class="button secondary">Actualizar</button></div>
+      <div id="admin-message" class="message" aria-live="polite"></div>
+      <div id="requests" class="request-list"><div class="empty">Cargando solicitudes…</div></div>
+    </section>
+  </main>
+  <script type="module" src="admin.js"></script>
+</body>
+</html>
