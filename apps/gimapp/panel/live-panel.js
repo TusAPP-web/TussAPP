@@ -17,7 +17,6 @@ const teamPermissionLabels = [
   ['manageSchedule', 'Modificar horarios'],
   ['manageClients', 'Administrar clientes'],
   ['manageCash', 'Usar Caja'],
-  ['viewReports', 'Ver informes'],
   ['manageCatalog', 'Administrar catálogo'],
 ];
 const goldOnlyPermissions = new Set(['approveRequests', 'manageSchedule', 'manageClients', 'manageCatalog']);
