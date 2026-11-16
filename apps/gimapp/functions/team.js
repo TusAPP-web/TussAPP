@@ -173,7 +173,7 @@ exports.createTeamInvitation = onCall(options, async request => {
     const fallbackTurns = catalogSnap.exists && Array.isArray(catalogSnap.data().turns) ? catalogSnap.data().turns : [];
     const turnIds = validateTurns(gym, request.data?.assignedTurnIds || [], fallbackTurns);
     const [seats, duplicate, existingMembers] = await Promise.all([
-      countReservedSeats(tx, gymRef),
+      gym.plan === 'pro' ? countReservedSeats(tx, gymRef) : Promise.resolve(0),
       tx.get(gymRef.collection('teamInvitations').where('email', '==', email)),
       tx.get(gymRef.collection('team').where('email', '==', email)),
     ]);
@@ -238,7 +238,7 @@ exports.acceptTeamInvitation = onCall(options, async request => {
     if (userSnap.exists && userSnap.data().currentGymId && userSnap.data().currentGymId !== gymId) {
       throw new HttpsError('failed-precondition', 'Esta cuenta ya está vinculada a otro gimnasio.');
     }
-    const seats = await countReservedSeats(tx, gymRef);
+    const seats = gym.plan === 'pro' ? await countReservedSeats(tx, gymRef) : 0;
     if (gym.plan === 'pro' && seats > 3) {
       throw new HttpsError('resource-exhausted', 'Se alcanzó el máximo de 3 cuentas del plan Pro.');
     }
