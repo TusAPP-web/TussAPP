@@ -137,6 +137,25 @@ async function register(uidToken, gymId) {
     assert.equal(unauthorizedPlanReview.body.error?.status, 'PERMISSION_DENIED', JSON.stringify(unauthorizedPlanReview.body));
     const platformAdmin = await authUser('platform-admin@example.test');
     await db.doc('platformAdmins/' + platformAdmin.localId).set({ active: true });
+    await db.doc('gyms/gym-trial').set({
+      ownerUid: planOwner.localId, name: 'Gimnasio de prueba', status: 'active', plan: 'free',
+    });
+    const unauthorizedGrant = await call('grantPlanManually', userA.idToken, {
+      gymId: 'gym-trial', plan: 'gold', reason: 'Prueba',
+    });
+    assert.equal(unauthorizedGrant.body.error?.status, 'PERMISSION_DENIED', JSON.stringify(unauthorizedGrant.body));
+    const trialExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const manualGrant = await call('grantPlanManually', platformAdmin.idToken, {
+      gymId: 'gym-trial', plan: 'pro', reason: 'Prueba piloto autorizada', expiresAt: trialExpiry,
+    });
+    assert.equal(manualGrant.status, 200, JSON.stringify(manualGrant.body));
+    assert.equal(manualGrant.body.result?.planSource, 'manual');
+    const trialGym = await db.doc('gyms/gym-trial').get();
+    assert.equal(trialGym.data()?.plan, 'pro');
+    assert.equal(trialGym.data()?.planSource, 'manual');
+    assert.equal(trialGym.data()?.planGrantReason, 'Prueba piloto autorizada');
+    assert.equal(trialGym.data()?.planGrantedBy, platformAdmin.localId);
+    assert.ok(trialGym.data()?.planExpiresAt?.toMillis() > Date.now());
     const adminQueue = await call('listPendingPlanChangeRequests', platformAdmin.idToken, {});
     assert.equal(adminQueue.status, 200, JSON.stringify(adminQueue.body));
     assert.equal(adminQueue.body.result?.requests?.length, 1, JSON.stringify(adminQueue.body));
