@@ -337,6 +337,9 @@ async function register(uidToken, gymId) {
     assert.equal(attendanceWorkspace.status, 200, JSON.stringify(attendanceWorkspace.body));
     assert.deepEqual(attendanceWorkspace.body.result?.clients?.map(client => client.id), ['client-turn-gold']);
     assert.equal('phone' in attendanceWorkspace.body.result.clients[0], false, 'El rol de asistencia no recibe datos de contacto.');
+    assert.deepEqual(Object.keys(attendanceWorkspace.body.result.clients[0]).sort(),
+      ['id', 'displayId', 'firstName', 'lastName', 'status', 'assignedTurnIds'].sort(),
+      'El rol de asistencia solo recibe los campos mínimos autorizados.');
     for (let i = 1; i <= 5; i++) {
       const goldInvite = await call('createTeamInvitation', teamGoldOwner.idToken, {
         gymId: 'gym-team-gold', name: 'Gold ' + i, email: 'gold-' + i + '@example.test',
