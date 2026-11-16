@@ -20,6 +20,18 @@ const { doc, getDoc, setDoc, updateDoc } = require('firebase/firestore');
       await setDoc(doc(db, 'gyms/gym-rules/team/owner-a'), {
         uid: 'owner-a', role: 'owner', active: true,
       });
+      await setDoc(doc(db, 'gyms/gym-pro/team/owner-pro'), {
+        uid: 'owner-pro', role: 'owner', active: true,
+      });
+      await setDoc(doc(db, 'gyms/gym-pro'), {
+        ownerUid: 'owner-pro', status: 'active', plan: 'pro', name: 'Gimnasio Pro',
+      });
+      await setDoc(doc(db, 'gyms/gym-rules/cash/cash-free'), {
+        type: 'income', amount: 100,
+      });
+      await setDoc(doc(db, 'gyms/gym-pro/cash/cash-pro'), {
+        type: 'income', amount: 100,
+      });
       await setDoc(doc(db, 'gyms/gym-rules'), {
         ownerUid: 'owner-a', status: 'active', plan: 'free', name: 'Gimnasio de prueba',
       });
@@ -32,6 +44,7 @@ const { doc, getDoc, setDoc, updateDoc } = require('firebase/firestore');
     const otherDb = env.authenticatedContext('client-b').firestore();
     const anonymousDb = env.unauthenticatedContext().firestore();
     const ownerDb = env.authenticatedContext('owner-a').firestore();
+    const proOwnerDb = env.authenticatedContext('owner-pro').firestore();
 
     await assertSucceeds(getDoc(doc(clientDb, 'gyms/gym-rules/clients/client-a')));
     await assertFails(getDoc(doc(otherDb, 'gyms/gym-rules/clients/client-a')));
@@ -47,6 +60,11 @@ const { doc, getDoc, setDoc, updateDoc } = require('firebase/firestore');
       enrolled: 1,
     }));
     await assertSucceeds(getDoc(doc(ownerDb, 'gyms/gym-rules/clients/client-a')));
+    await assertFails(getDoc(doc(ownerDb, 'gyms/gym-rules/cash/cash-free')));
+    await assertSucceeds(getDoc(doc(proOwnerDb, 'gyms/gym-pro/cash/cash-pro')));
+    await assertFails(setDoc(doc(ownerDb, 'gyms/gym-rules/planRequests/direct'), {
+      requestedPlan: 'pro', status: 'pending',
+    }));
     await assertSucceeds(getDoc(doc(clientDb, 'publicCatalog/gym-rules')));
 
     console.log('PASS: reglas Firestore impiden escrituras directas de clientes, protegen datos ajenos y permiten lecturas autorizadas.');
