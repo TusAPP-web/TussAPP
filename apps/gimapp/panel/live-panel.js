@@ -1,5 +1,5 @@
 // GimAPP · versión 0.1 · 3 de noviembre de 2026.
-import { approveRequest, addCashEntry, getCatalogConfiguration, getCashEntries, getClients, getGymProfile, getPendingRequests, getPlanRequests, rejectRequest, requestPlanChange, saveAttendance, saveGymSchedule, savePublicCatalog, updateGymProfile } from './data.js';
+import { approveRequest, addCashEntry, createTeamInvitation, deactivateTeamMember, getCatalogConfiguration, getCashEntries, getClients, getGymProfile, getPendingRequests, getPlanRequests, listTeam, rejectRequest, requestPlanChange, revokeTeamInvitation, saveAttendance, saveGymSchedule, savePublicCatalog, updateGymProfile, updateTeamMember } from './data.js';
 
 const app = document.querySelector('#app');
 const nav = document.querySelector('#main-nav');
@@ -7,7 +7,20 @@ const modal = document.querySelector('#modal');
 const modalContent = document.querySelector('#modal-content');
 const { user, membership } = window.GIMAPP_SESSION;
 const weekDays = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-let page = 'inicio', month = new Date(), selectedDate = new Date(), state = { gym: null, catalog: { turns: [] }, requests: [], planRequests: [], clients: [], cash: [] };
+let page = 'inicio', month = new Date(), selectedDate = new Date(), state = { gym: null, catalog: { turns: [] }, requests: [], planRequests: [], clients: [], cash: [], team: { members: [], invitations: [], plan: 'free' } };
+const teamPermissionLabels = [
+  ['viewSchedule', 'Ver horarios'],
+  ['viewClients', 'Consultar clientes'],
+  ['viewRequests', 'Ver solicitudes'],
+  ['approveRequests', 'Aprobar solicitudes'],
+  ['takeAttendance', 'Registrar asistencia'],
+  ['manageSchedule', 'Modificar horarios'],
+  ['manageClients', 'Administrar clientes'],
+  ['manageCash', 'Usar Caja'],
+  ['viewReports', 'Ver informes'],
+  ['manageCatalog', 'Administrar catálogo'],
+];
+const goldOnlyPermissions = new Set(['approveRequests', 'manageSchedule', 'manageClients', 'manageCatalog']);
 const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 const money = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 const dateKey = date => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -34,19 +47,21 @@ async function load() {
   const gym = await getGymProfile(membership.gymId);
   const canAttend = canManageAttendance();
   const canAdmin = canManageGym();
-  const [catalog, requests, clients, cash, planRequests] = await Promise.all([
+  const [catalog, requests, clients, cash, planRequests, team] = await Promise.all([
     getCatalogConfiguration(membership.gymId),
     canAttend ? getPendingRequests(membership.gymId) : Promise.resolve([]),
     canAttend ? getClients(membership.gymId) : Promise.resolve([]),
     canAdmin && hasPaidPlan(gym) ? getCashEntries(membership.gymId) : Promise.resolve([]),
     membership.role === 'owner' ? getPlanRequests(membership.gymId) : Promise.resolve([]),
+    membership.role === 'owner' ? listTeam(membership.gymId) : Promise.resolve({ members: [], invitations: [], plan: effectivePlan(gym) }),
   ]);
-  state = { gym, catalog, requests, clients, cash, planRequests };
+  state = { gym, catalog, requests, clients, cash, planRequests, team };
   document.querySelectorAll('[data-gym-name]').forEach(el => { el.textContent = gym.name; });
   document.querySelectorAll('[data-plan-name]').forEach(el => { el.textContent = effectivePlan(gym) === 'free' ? 'Gratis' : effectivePlan(gym).toUpperCase(); });
   const navRules = {
     solicitudes: canAttend,
     clientes: canAttend,
+    equipo: membership.role === 'owner',
     caja: canAdmin,
     planes: membership.role === 'owner',
     configuracion: canAdmin,
@@ -104,6 +119,56 @@ function settingsPage() {
       <button class="button primary" data-action="save-schedule">Guardar horarios y publicar configuración</button>
     </section>`;
 }
+
+function teamPage() {
+  if (membership.role !== 'owner') return `${heading('Equipo', 'Solo el dueño puede administrar el equipo.')}<section class="card"><p class="muted">Consultá con el dueño del gimnasio.</p></section>`;
+  const plan = effectivePlan(state.gym);
+  const members = state.team.members || [];
+  const invitations = state.team.invitations || [];
+  if (!['pro', 'gold'].includes(plan)) {
+    return `${heading('Equipo', 'Sumá profesionales y organizá sus horarios y permisos.')}<section class="card locked-feature"><div class="locked-feature-icon">🔒</div><h2>Disponible en Pro y Gold</h2><p class="muted">El plan Gratis incluye una sola cuenta: la del dueño. Pro permite hasta 3 cuentas en total; Gold permite usuarios internos ilimitados y permisos avanzados.</p><button class="button primary" data-page="planes">Conocer planes</button></section>`;
+  }
+  const permissionInputs = (selected = {}, prefix = 'new') => teamPermissionLabels.map(([key, label]) => {
+    const disabled = plan !== 'gold' && goldOnlyPermissions.has(key);
+    return `<label class="team-check ${disabled ? 'disabled' : ''}"><input type="checkbox" ${selected[key] === true ? 'checked' : ''} data-permission="${key}" ${prefix === 'new' ? 'data-new-permission' : ''} ${disabled ? 'disabled' : ''}><span>${label}${disabled ? ' · Gold' : ''}</span></label>`;
+  }).join('');
+  const turnInputs = (selected = [], prefix = 'new') => (state.catalog.turns || []).map(turn =>
+    `<label class="team-check"><input type="checkbox" value="${esc(turn.id)}" ${selected.includes(turn.id) ? 'checked' : ''} data-turn="${esc(turn.id)}" ${prefix === 'new' ? 'data-new-turn' : ''}><span>${esc(turn.day)} · ${esc(turn.start)} · ${esc(turn.discipline)}</span></label>`
+  ).join('') || '<p class="small muted">Primero configurá horarios para poder asignarlos.</p>';
+  const memberCards = members.filter(member => member.role !== 'owner').map(member => `
+    <article class="team-member card" data-team-member data-uid="${esc(member.uid)}">
+      <div class="card-head"><div><h3>${esc(member.name || 'Empleado')}</h3><p class="small muted">${esc(member.email || '')}</p></div><span class="status">${member.active ? 'Activo' : 'Inactivo'}</span></div>
+      <div class="section-label">Permisos individuales</div><div class="team-check-grid">${permissionInputs(member.permissions || {}, 'member')}</div>
+      <div class="section-label">Horarios asignados</div><div class="team-check-grid">${turnInputs(member.assignedTurnIds || [], 'member')}</div>
+      <div class="team-actions"><button class="button primary small" data-action="save-team-member" data-uid="${esc(member.uid)}">Guardar cambios</button><button class="button danger small" data-action="deactivate-team-member" data-uid="${esc(member.uid)}">Desactivar acceso</button></div>
+    </article>`).join('');
+  const invitationRows = invitations.map(invite => `
+    <div class="team-invitation-row"><div><b>${esc(invite.email)}</b><p class="small muted">Vence: ${new Date(invite.expiresAt).toLocaleDateString('es-AR')}</p></div><button class="button small danger" data-action="revoke-team-invitation" data-id="${esc(invite.id)}">Revocar</button></div>`).join('');
+  const accountCount = members.filter(member => member.active).length + invitations.length;
+  return `${heading('Equipo', 'Invitá empleados, asignales horarios y definí qué pueden hacer.')}
+    <section class="card">
+      <div class="card-head"><h2>Uso de cuentas</h2><span class="status">${plan.toUpperCase()}</span></div>
+      <p class="muted">${plan === 'pro' ? accountCount + ' de 3 cuentas ocupadas. El límite incluye al dueño y las invitaciones pendientes.' : accountCount + ' cuentas ocupadas. Gold no tiene límite de usuarios internos.'}</p>
+    </section>
+    <section class="card team-invite-card">
+      <div class="card-head"><h2>Invitar a un empleado</h2></div>
+      <label class="field">Nombre del empleado<input id="team-invite-name" maxlength="120" placeholder="Nombre y apellido"></label>
+      <label class="field">Correo electrónico<input id="team-invite-email" type="email" maxlength="254" placeholder="empleado@correo.com"></label>
+      <div class="section-label">Permisos que tendrá</div><div class="team-check-grid" data-team-new-permissions>${permissionInputs({}, 'new')}</div>
+      <div class="section-label">Horarios que tendrá asignados</div><div class="team-check-grid" data-team-new-turns>${turnInputs([], 'new')}</div>
+      <p class="small muted">La invitación vence en 7 días. El empleado debe ingresar con el correo indicado y verificarlo. Después podés copiarle el enlace para que complete el alta.</p>
+      <button class="button primary" data-action="create-team-invitation">Crear invitación</button>
+    </section>
+    <section class="card">
+      <div class="card-head"><h2>Invitaciones pendientes</h2><span class="status">${invitations.length}</span></div>
+      ${invitationRows || '<p class="small muted">No hay invitaciones pendientes.</p>'}
+    </section>
+    <section class="card">
+      <div class="card-head"><h2>Empleados</h2><span class="status">${members.filter(member => member.active && member.role !== 'owner').length} activos</span></div>
+      ${memberCards || '<p class="small muted">Todavía no hay empleados incorporados.</p>'}
+    </section>`;
+}
+
 function plansPage() {
   if (membership.role !== 'owner') return `${heading('Planes de GimAPP', 'Solo el dueño del gimnasio puede gestionar el plan.')}<section class="card"><p class="muted">Consultá con el dueño del gimnasio para conocer el plan contratado.</p></section>`;
   const currentPlan = effectivePlan(state.gym);
@@ -158,8 +223,8 @@ function plansPage() {
 function view() {
   if (['solicitudes', 'clientes', 'fecha'].includes(page) && !canManageAttendance()) page = 'inicio';
   if (['caja', 'configuracion'].includes(page) && !canManageGym()) page = 'inicio';
-  if (page === 'planes' && membership.role !== 'owner') page = 'inicio';
-  return ({ inicio: home, solicitudes: requestsPage, clientes: clientsPage, fecha: datePage, caja: cashPage, configuracion: settingsPage, planes: plansPage }[page] || home)();
+  if (['planes', 'equipo'].includes(page) && membership.role !== 'owner') page = 'inicio';
+  return ({ inicio: home, solicitudes: requestsPage, clientes: clientsPage, fecha: datePage, caja: cashPage, configuracion: settingsPage, equipo: teamPage, planes: plansPage }[page] || home)();
 }
 async function render() { app.innerHTML = '<div class="empty"><strong>Cargando…</strong></div>'; try { await load(); const content = view(); nav.querySelectorAll('.nav-item').forEach(item => item.classList.toggle('active', item.dataset.page === page)); app.innerHTML = content; } catch (error) { app.innerHTML = `<div class="empty"><strong>No se pudieron cargar los datos</strong>${esc(error.message)}</div>`; } }
 
@@ -182,6 +247,47 @@ document.addEventListener('click', async event => {
   if (button.dataset.page) { event.preventDefault(); if (modal.open) modal.close(); page = button.dataset.page; render(); return; }
   if (button.dataset.date) { selectedDate = new Date(`${button.dataset.date}T12:00:00`); page = 'fecha'; render(); return; }
   const action = button.dataset.action;
+
+  if (action === 'create-team-invitation') {
+    try {
+      const name = document.querySelector('#team-invite-name').value.trim();
+      const email = document.querySelector('#team-invite-email').value.trim();
+      const permissions = Object.fromEntries([...document.querySelectorAll('[data-new-permission]')].map(input => [input.dataset.permission, input.checked]));
+      const assignedTurnIds = [...document.querySelectorAll('[data-new-turn]:checked')].map(input => input.value);
+      const result = await createTeamInvitation({ gymId: membership.gymId, name, email, permissions, assignedTurnIds });
+      const inviteUrl = new URL('../index.html', window.location.href);
+      inviteUrl.searchParams.set('gym', membership.gymId);
+      inviteUrl.searchParams.set('invite', result.invitationId);
+      const link = inviteUrl.toString();
+      openModal('Invitación creada', `<p>Compartí este enlace con <b>${esc(email)}</b>. Solo esa dirección podrá aceptarlo y vence en 7 días.</p><label class="field">Enlace de invitación<input id="team-invite-link" readonly value="${esc(link)}"></label>`, `<button class="button" data-close>Cerrar</button><button class="button primary" data-action="copy-team-link" data-link="${esc(link)}">Copiar enlace</button>`);
+      render();
+    } catch (error) { toast(error?.message || 'No se pudo crear la invitación.'); }
+  }
+  if (action === 'copy-team-link') {
+    try { await navigator.clipboard.writeText(button.dataset.link); toast('Enlace copiado.'); }
+    catch { document.querySelector('#team-invite-link')?.select(); toast('Seleccioná y copiá el enlace manualmente.'); }
+  }
+  if (action === 'save-team-member') {
+    try {
+      const memberCard = button.closest('[data-team-member]');
+      const permissions = Object.fromEntries([...memberCard.querySelectorAll('[data-permission]')].map(input => [input.dataset.permission, input.checked]));
+      const assignedTurnIds = [...memberCard.querySelectorAll('[data-turn]:checked')].map(input => input.value);
+      await updateTeamMember({ gymId: membership.gymId, memberUid: button.dataset.uid, permissions, assignedTurnIds });
+      toast('Permisos y horarios actualizados.');
+      render();
+    } catch (error) { toast(error?.message || 'No se pudieron guardar los cambios.'); }
+  }
+  if (action === 'deactivate-team-member') {
+    if (!confirm('¿Desactivar el acceso de este empleado? Sus datos y registros históricos se conservarán.')) return;
+    try { await deactivateTeamMember({ gymId: membership.gymId, memberUid: button.dataset.uid }); toast('Acceso desactivado.'); render(); }
+    catch (error) { toast(error?.message || 'No se pudo desactivar el acceso.'); }
+  }
+  if (action === 'revoke-team-invitation') {
+    if (!confirm('¿Revocar esta invitación pendiente?')) return;
+    try { await revokeTeamInvitation({ gymId: membership.gymId, invitationId: button.dataset.id }); toast('Invitación revocada.'); render(); }
+    catch (error) { toast(error?.message || 'No se pudo revocar la invitación.'); }
+  }
+
   if (action === 'today') { month = new Date(); render(); }
   if (action === 'prev-month') { month = new Date(month.getFullYear(), month.getMonth() - 1, 1); render(); }
   if (action === 'next-month') { month = new Date(month.getFullYear(), month.getMonth() + 1, 1); render(); }
