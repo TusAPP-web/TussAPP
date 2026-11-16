@@ -142,7 +142,11 @@ export async function registerForTeamInvitation({ email, password }) {
 }
 
 export async function acceptTeamInvitation({ gymId, invitationId }) {
-  const { app } = await getFirebaseServices();
+  const { app, auth } = await getFirebaseServices();
+  if (auth.currentUser) {
+    await auth.currentUser.reload();
+    await auth.currentUser.getIdToken(true);
+  }
   const accept = httpsCallable(getFunctions(app, 'southamerica-east1'), 'acceptTeamInvitation');
   const result = await accept({ gymId, invitationId });
   return result.data;
