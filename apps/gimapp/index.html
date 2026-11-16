@@ -18,6 +18,17 @@
       <button class="text-link" type="button" id="password-reset">Olvidé mi contraseña</button><br>
       <button class="text-link" type="button" id="show-owner-registration">Crear cuenta para mi gimnasio →</button>
     </section>
+    <section id="invitation-view" hidden>
+      <p class="muted" id="invitation-description">Te invitaron a formar parte del equipo de un gimnasio.</p>
+      <form id="invitation-login-form">
+        <label>Correo electrónico<input id="invitation-email" type="email" autocomplete="email" required placeholder="tu@correo.com"></label>
+        <label>Contraseña<input id="invitation-password" type="password" autocomplete="current-password" required minlength="8" placeholder="Tu contraseña"></label>
+        <button class="button primary full" type="submit">Ingresar y aceptar invitación</button>
+      </form>
+      <button class="button full" type="button" id="invitation-register">Crear cuenta y recibir verificación</button>
+      <button class="button full" type="button" id="invitation-google">Continuar con Google</button>
+      <button class="button full" type="button" id="invitation-verified" hidden>Ya verifiqué mi correo: aceptar invitación</button>
+    </section>
     <section id="owner-registration-view" hidden>
       <form id="owner-registration-form"><label>Nombre del gimnasio<input name="gymName" required minlength="2" autocomplete="organization" placeholder="Nombre comercial"></label>
         <label>Nombre de la persona responsable<input name="name" required minlength="2" autocomplete="name" placeholder="Nombre y apellido"></label>
