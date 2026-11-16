@@ -1,5 +1,5 @@
 // GimAPP · versión 0.1 · 3 de noviembre de 2026.
-import { approveRequest, addCashEntry, getCatalogConfiguration, getCashEntries, getClients, getGymProfile, getPendingRequests, rejectRequest, saveAttendance, saveGymSchedule, savePublicCatalog, updateGymProfile } from './data.js';
+import { approveRequest, addCashEntry, getCatalogConfiguration, getCashEntries, getClients, getGymProfile, getPendingRequests, getPlanRequests, rejectRequest, requestPlanChange, saveAttendance, saveGymSchedule, savePublicCatalog, updateGymProfile } from './data.js';
 
 const app = document.querySelector('#app');
 const nav = document.querySelector('#main-nav');
@@ -7,7 +7,7 @@ const modal = document.querySelector('#modal');
 const modalContent = document.querySelector('#modal-content');
 const { user, membership } = window.GIMAPP_SESSION;
 const weekDays = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-let page = 'inicio', month = new Date(), selectedDate = new Date(), state = { gym: null, catalog: { turns: [] }, requests: [], clients: [], cash: [] };
+let page = 'inicio', month = new Date(), selectedDate = new Date(), state = { gym: null, catalog: { turns: [] }, requests: [], planRequests: [], clients: [], cash: [] };
 const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 const money = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 const dateKey = date => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -19,10 +19,19 @@ function heading(title, subtitle, action = '') { return `<div class="page-headin
 function table(rows, headers) { return `<div class="table-wrap"><table class="data-table"><thead><tr>${headers.map(item => `<th>${item}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`; }
 function openModal(title, body, actions = '') { modalContent.innerHTML = `<div class="modal-inner"><div class="modal-head"><h2>${title}</h2><button class="close" data-close aria-label="Cerrar">×</button></div>${body}<div class="modal-actions">${actions}</div></div>`; modal.showModal(); }
 async function load() {
-  const [gym, catalog, requests, clients, cash] = await Promise.all([getGymProfile(membership.gymId), getCatalogConfiguration(membership.gymId), getPendingRequests(membership.gymId), getClients(membership.gymId), getCashEntries(membership.gymId)]);
-  state = { gym, catalog, requests, clients, cash };
+  const [gym, catalog, requests, clients, cash, planRequests] = await Promise.all([
+    getGymProfile(membership.gymId),
+    getCatalogConfiguration(membership.gymId),
+    getPendingRequests(membership.gymId),
+    getClients(membership.gymId),
+    getGymProfile(membership.gymId).then(profile => ['pro', 'gold'].includes(profile.plan) ? getCashEntries(membership.gymId) : Promise.resolve([])),
+    membership.role === 'owner' ? getPlanRequests(membership.gymId) : Promise.resolve([]),
+  ]);
+  state = { gym, catalog, requests, clients, cash, planRequests };
   document.querySelectorAll('[data-gym-name]').forEach(el => { el.textContent = gym.name; });
   document.querySelectorAll('[data-plan-name]').forEach(el => { el.textContent = gym.plan === 'free' ? 'Gratis' : gym.plan; });
+  const cashNav = nav.querySelector('[data-page="caja"]');
+  if (cashNav) cashNav.hidden = !['pro', 'gold'].includes(gym.plan);
   const badge = document.querySelector('#request-badge');
   if (badge) { badge.hidden = requests.length === 0; badge.textContent = requests.length || ''; }
 }
@@ -69,7 +78,52 @@ function settingsPage() {
       <button class="button primary" data-action="save-schedule">Guardar horarios y publicar configuración</button>
     </section>`;
 }
-function plansPage() { return `${heading('Planes de GimAPP', 'Los cobros se configurarán más adelante.')}<section class="card"><h2>Plan actual: ${esc(state.gym.plan || 'free')}</h2><p class="muted">Para consultas sobre Pro o Gold: <a href="mailto:tusappasistente@gmail.com">tusappasistente@gmail.com</a>.</p></section>`; }
+function plansPage() {
+  const currentPlan = state.gym.plan || 'free';
+  const currentLabel = ({ free: 'Gratis', pro: 'Pro', gold: 'Gold' })[currentPlan] || currentPlan;
+  const latest = state.planRequests[0];
+  const lockedRequest = latest && ['pending', 'approved_waiting_payment'].includes(latest.status);
+  const statusLabel = latest?.status === 'pending' ? 'En revisión por TusAPP'
+    : latest?.status === 'approved_waiting_payment' ? 'Aprobada · pendiente de pago'
+    : latest?.status === 'rejected' ? 'Solicitud anterior rechazada' : '';
+  const canRequestPro = membership.role === 'owner' && currentPlan === 'free' && !lockedRequest;
+  const canRequestGold = membership.role === 'owner' && currentPlan !== 'gold' && !lockedRequest;
+  const requestButton = (plan, enabled) => enabled
+    ? `<button class="button primary full" data-action="request-plan" data-plan="${plan}">Solicitar migración a ${plan === 'pro' ? 'Pro' : 'Gold'}</button>`
+    : '';
+  return `${heading('Planes de GimAPP', 'Elegí el plan que acompaña el crecimiento de tu gimnasio.')}
+    <section class="card">
+      <div class="card-head"><h2>Tu plan actual</h2><span class="status">${esc(currentLabel)}</span></div>
+      <p class="muted">Las funciones de tu gimnasio se habilitan según el plan asignado por TusAPP.</p>
+      ${latest ? `<div class="notice"><b>Última solicitud:</b> ${esc(statusLabel)}. Plan solicitado: ${esc(latest.requestedPlan?.toUpperCase() || '—')}.${latest.status === 'approved_waiting_payment' ? ' El plan no se activa hasta que se confirme el pago.' : ''}</div>` : ''}
+      ${lockedRequest ? '<p class="small muted">No podés enviar otra solicitud mientras esta siga pendiente o esperando el pago.</p>' : ''}
+    </section>
+    <div class="grid two" style="margin-top:16px">
+      <section class="card">
+        <span class="eyebrow">PARA EMPEZAR</span><h2>Gratis</h2><div class="stat-value">USD 0</div>
+        <p class="small muted">Sin costo y sin límite de tiempo.</p>
+        <ul class="plan-list"><li>Calendario y horarios</li><li>Clientes y turnos</li><li>Solicitudes y asistencia</li><li>Catálogo básico</li><li>1 cuenta: dueño</li></ul>
+        ${currentPlan === 'free' ? '<span class="status">Tu plan actual</span>' : ''}
+      </section>
+      <section class="card">
+        <span class="eyebrow">MÁS HERRAMIENTAS</span><h2>Pro</h2><div class="stat-value">USD 5 <span class="small muted">/ mes</span></div>
+        <p class="small muted">Precio promocional durante los primeros 6 meses; luego USD 10 por mes.</p>
+        <ul class="plan-list"><li>Todo lo incluido en Gratis</li><li>Caja e informes</li><li>Catálogo personalizado</li><li>Varios profesionales</li><li>Hasta 3 cuentas en total</li></ul>
+        ${currentPlan === 'pro' ? '<span class="status">Tu plan actual</span>' : requestButton('pro', canRequestPro)}
+      </section>
+      <section class="card">
+        <span class="eyebrow">GESTIÓN AVANZADA</span><h2>Gold</h2><div class="stat-value">USD 7,50 <span class="small muted">/ mes</span></div>
+        <p class="small muted">Precio promocional durante los primeros 6 meses; luego USD 15 por mes.</p>
+        <ul class="plan-list"><li>Todo lo incluido en Pro</li><li>Usuarios internos ilimitados</li><li>Roles y permisos avanzados</li><li>Herramientas avanzadas de gestión</li></ul>
+        ${currentPlan === 'gold' ? '<span class="status">Tu plan actual</span>' : requestButton('gold', canRequestGold)}
+      </section>
+    </div>
+    <section class="card" style="margin-top:16px">
+      <h2>Condiciones de precio</h2>
+      <p class="small muted">Los importes se expresan como referencia en dólares. Cuando se habiliten los pagos, se cobrarán en pesos argentinos, calculados con la cotización oficial definida por TusAPP para el día del pago. Los pagos todavía no están habilitados.</p>
+      ${membership.role !== 'owner' ? '<p class="small muted">Solo el dueño del gimnasio puede solicitar un cambio de plan.</p>' : ''}
+    </section>`;
+}
 function view() { return ({ inicio: home, solicitudes: requestsPage, clientes: clientsPage, fecha: datePage, caja: cashPage, configuracion: settingsPage, planes: plansPage }[page] || home)(); }
 async function render() { app.innerHTML = '<div class="empty"><strong>Cargando…</strong></div>'; try { await load(); nav.querySelectorAll('.nav-item').forEach(item => item.classList.toggle('active', item.dataset.page === page)); app.innerHTML = view(); } catch (error) { app.innerHTML = `<div class="empty"><strong>No se pudieron cargar los datos</strong>${esc(error.message)}</div>`; } }
 
@@ -84,6 +138,15 @@ document.addEventListener('click', async event => {
   if (action === 'next-month') { month = new Date(month.getFullYear(), month.getMonth() + 1, 1); render(); }
   if (action === 'approve-request') { await approveRequest({ gymId: membership.gymId, requestId: button.dataset.id, actorUid: user.uid }); toast('Solicitud aprobada.'); render(); }
   if (action === 'reject-request') { await rejectRequest({ gymId: membership.gymId, requestId: button.dataset.id, actorUid: user.uid }); toast('Solicitud rechazada.'); render(); }
+  if (action === 'request-plan') {
+    try {
+      await requestPlanChange({ gymId: membership.gymId, requestedPlan: button.dataset.plan });
+      toast('Solicitud enviada a TusAPP.');
+      render();
+    } catch (error) {
+      toast(error?.message || 'No se pudo enviar la solicitud.');
+    }
+  }
   if (action === 'attendance') { await saveAttendance({ gymId: membership.gymId, trainerUid: user.uid, clientUid: button.dataset.client, turnId: button.dataset.turn, date: dateKey(selectedDate), status: button.dataset.status }); toast('Asistencia guardada.'); }
   if (action === 'new-cash') openModal('Registrar movimiento', '<label class="field">Tipo<select id="cash-type" class="select"><option value="income">Ingreso</option><option value="expense">Egreso</option></select></label><label class="field">Importe<input id="cash-amount" type="number" min="1"></label><label class="field">Categoría<input id="cash-category"></label><label class="field">Detalle<input id="cash-note"></label><label class="field">Fecha<input id="cash-date" type="date" value="' + dateKey(new Date()) + '"></label>', '<button class="button" data-close>Cancelar</button><button class="button primary" data-action="save-cash">Guardar</button>');
   if (action === 'save-cash') { await addCashEntry({ gymId: membership.gymId, type: document.querySelector('#cash-type').value, amount: document.querySelector('#cash-amount').value, category: document.querySelector('#cash-category').value, note: document.querySelector('#cash-note').value, date: document.querySelector('#cash-date').value, actorUid: user.uid }); modal.close(); toast('Movimiento guardado.'); render(); }
