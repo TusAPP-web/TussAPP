@@ -21,13 +21,20 @@ async function authUser(email) {
   return body;
 }
 async function verifyEmail(user) {
-  const response = await fetch('http://' + authHost + '/identitytoolkit.googleapis.com/v1/accounts:update?key=fake-api-key', {
+  const updateResponse = await fetch('http://' + authHost + '/identitytoolkit.googleapis.com/v1/accounts:update?key=fake-api-key', {
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ idToken: user.idToken, emailVerified: true, returnSecureToken: true }),
   });
-  const body = await response.json();
-  assert.equal(response.ok, true, JSON.stringify(body));
-  return body;
+  const updated = await updateResponse.json();
+  assert.equal(updateResponse.ok, true, JSON.stringify(updated));
+  const signInResponse = await fetch('http://' + authHost + '/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=fake-api-key', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ email: user.email, password: 'TestPassword123!', returnSecureToken: true }),
+  });
+  const signedIn = await signInResponse.json();
+  assert.equal(signInResponse.ok, true, JSON.stringify(signedIn));
+  assert.equal(signedIn.emailVerified, true, JSON.stringify(signedIn));
+  return signedIn;
 }
 async function call(name, token, data) {
   const response = await fetch(base + '/' + name, {
