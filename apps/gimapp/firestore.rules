@@ -15,10 +15,10 @@ service cloud.firestore {
       let goldOnly = permission in ['approveRequests', 'manageSchedule', 'manageClients', 'manageCatalog'];
       return activeMember(gymId) && (
         teamRecord(gymId).data.role == 'owner' ||
+        (!('permissions' in teamRecord(gymId).data) && teamRecord(gymId).data.role == 'complete') ||
         ((!goldOnly || (gym.plan == 'gold' && paidPlan(gymId))) && (
           (('permissions' in teamRecord(gymId).data) && teamRecord(gymId).data.permissions[permission] == true) ||
           (!('permissions' in teamRecord(gymId).data) && (
-            teamRecord(gymId).data.role == 'complete' ||
             (teamRecord(gymId).data.role == 'intermediate' && permission in ['viewSchedule', 'viewClients', 'viewRequests', 'takeAttendance']) ||
             (teamRecord(gymId).data.role == 'basic' && permission in ['viewSchedule'])
           ))
@@ -33,6 +33,7 @@ service cloud.firestore {
         (teamRecord(gymId).data.assignedTurnIds is list && turnId in teamRecord(gymId).data.assignedTurnIds));
     }
     function attendanceManager(gymId) { return hasPermission(gymId, 'takeAttendance'); }
+    function attendanceAdministrator(gymId) { return activeMember(gymId) && (teamRecord(gymId).data.role == 'owner' || (!('permissions' in teamRecord(gymId).data) && teamRecord(gymId).data.role in ['complete', 'intermediate'])); }
     function clientIsSelf() { return signedIn() && resource.data.clientUid == request.auth.uid; }
     function createsOwnClientData() { return signedIn() && request.resource.data.clientUid == request.auth.uid; }
 
@@ -101,13 +102,13 @@ service cloud.firestore {
       }
       match /attendance/{attendanceId} {
         allow get, list: if clientIsSelf() || (hasPermission(gymId, 'takeAttendance') &&
-          (teamRecord(gymId).data.role == 'owner' ||
+          (attendanceAdministrator(gymId) ||
             (resource.data.trainerUid == request.auth.uid && assignedToTurn(gymId, resource.data.turnId))));
         allow create: if hasPermission(gymId, 'takeAttendance') &&
-          (teamRecord(gymId).data.role == 'owner' ||
+          (attendanceAdministrator(gymId) ||
             (request.resource.data.trainerUid == request.auth.uid && assignedToTurn(gymId, request.resource.data.turnId)));
         allow update: if hasPermission(gymId, 'takeAttendance') &&
-          (teamRecord(gymId).data.role == 'owner' ||
+          (attendanceAdministrator(gymId) ||
             (resource.data.trainerUid == request.auth.uid &&
               request.resource.data.trainerUid == request.auth.uid &&
               assignedToTurn(gymId, request.resource.data.turnId)));
