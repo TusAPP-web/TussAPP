@@ -110,7 +110,7 @@ exports.getGymWorkspace = onCall(options, async request => {
   const canViewSchedule = ['viewSchedule', 'takeAttendance', 'manageSchedule', 'manageCatalog']
     .some(permission => memberHasPermission(member, gym, permission));
   const canManageAllTurns = member.role === 'owner' ||
-    (!member.permissions && member.role === 'complete') ||
+    (!member.permissions && ['complete', 'intermediate', 'basic'].includes(member.role)) ||
     memberHasPermission(member, gym, 'manageSchedule') ||
     memberHasPermission(member, gym, 'manageCatalog');
   const allTurns = Array.isArray(gym.scheduleTurns) ? gym.scheduleTurns
