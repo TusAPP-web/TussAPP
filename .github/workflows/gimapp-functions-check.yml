@@ -15,7 +15,9 @@ on:
     paths:
       - 'apps/gimapp/functions/**'
       - 'apps/gimapp/firebase.json'
-      - 'apps/gimapp/panel/data.js'
+      - 'apps/gimapp/panel/**'
+      - 'apps/gimapp/admin/**'
+      - 'apps/gimapp/firestore.rules'
       - '.github/workflows/gimapp-functions-check.yml'
 
 jobs:
