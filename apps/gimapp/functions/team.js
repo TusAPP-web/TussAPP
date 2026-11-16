@@ -98,10 +98,14 @@ exports.createTeamInvitation = onCall(options, async request => {
     }
     validatePlanPermissions(gym, permissions);
     const turnIds = validateTurns(gym, request.data?.assignedTurnIds || []);
-    const [seats, duplicate] = await Promise.all([
+    const [seats, duplicate, existingMembers] = await Promise.all([
       countReservedSeats(tx, gymRef),
       tx.get(gymRef.collection('teamInvitations').where('email', '==', email)),
+      tx.get(gymRef.collection('team').where('email', '==', email)),
     ]);
+    if (existingMembers.docs.some(item => item.data().active === true)) {
+      throw new HttpsError('already-exists', 'Ese correo ya pertenece a un empleado activo del gimnasio.');
+    }
     if (duplicate.docs.some(item => item.data().status === 'pending' && item.data().expiresAt?.toMillis?.() > Date.now())) {
       throw new HttpsError('already-exists', 'Ya hay una invitación pendiente para ese correo.');
     }
