@@ -352,6 +352,17 @@ exports.grantPlanManually = onCall(options, async (request) => {
     const gymSnap = await tx.get(gymRef);
     if (!gymSnap.exists) throw new HttpsError('not-found', 'No se encontró el gimnasio indicado.');
     const previousPlan = gymSnap.data().plan || 'free';
+    if (plan === 'pro') {
+      const [activeMembers, pendingInvitations] = await Promise.all([
+        tx.get(gymRef.collection('team').where('active', '==', true)),
+        tx.get(gymRef.collection('teamInvitations').where('status', '==', 'pending')),
+      ]);
+      const activePendingInvitations = pendingInvitations.docs.filter(item =>
+        item.data().expiresAt?.toMillis?.() > Date.now());
+      if (activeMembers.size + activePendingInvitations.length > 3) {
+        throw new HttpsError('failed-precondition', 'Para activar Pro, el gimnasio debe tener como máximo 3 cuentas en total, incluido el dueño y las invitaciones pendientes. Desactivá o revocá las sobrantes primero.');
+      }
+    }
     tx.update(gymRef, {
       plan,
       planSource: 'manual',
