@@ -113,6 +113,32 @@ async function register(uidToken, gymId) {
     const disabled = await register(disabledUser.idToken, 'gym-disabled');
     assert.equal(disabled.body.error?.status, 'FAILED_PRECONDITION', JSON.stringify(disabled.body));
 
+    const planOwner = await authUser('plan-owner@example.test');
+    await db.doc('gyms/gym-plan/team/' + planOwner.localId).set({
+      uid: planOwner.localId, role: 'owner', active: true,
+    });
+    await db.doc('gyms/gym-plan').set({
+      ownerUid: planOwner.localId, name: 'Plan test', status: 'active', plan: 'free',
+    });
+    const planRequest = await call('requestPlanChange', planOwner.idToken, {
+      gymId: 'gym-plan', requestedPlan: 'pro',
+    });
+    assert.equal(planRequest.status, 200, JSON.stringify(planRequest.body));
+    assert.equal(planRequest.body.result?.status, 'pending');
+    const duplicatePlanRequest = await call('requestPlanChange', planOwner.idToken, {
+      gymId: 'gym-plan', requestedPlan: 'gold',
+    });
+    assert.equal(duplicatePlanRequest.body.error?.status, 'ALREADY_EXISTS', JSON.stringify(duplicatePlanRequest.body));
+    const platformAdmin = await authUser('platform-admin@example.test');
+    await db.doc('platformAdmins/' + platformAdmin.localId).set({ active: true });
+    const approvedPlan = await call('resolvePlanChangeRequest', platformAdmin.idToken, {
+      gymId: 'gym-plan', requestId: planRequest.body.result.requestId, decision: 'approve',
+    });
+    assert.equal(approvedPlan.status, 200, JSON.stringify(approvedPlan.body));
+    assert.equal(approvedPlan.body.result?.status, 'approved_waiting_payment');
+    const planAfterApproval = await db.doc('gyms/gym-plan').get();
+    assert.equal(planAfterApproval.data()?.plan, 'free');
+
     const invalidId = await call('enrollClientInTurn', winner.idToken, { gymId: '../bad', turnId: 'turn-1' });
     assert.equal(invalidId.body.error?.status, 'INVALID_ARGUMENT', JSON.stringify(invalidId.body));
 
