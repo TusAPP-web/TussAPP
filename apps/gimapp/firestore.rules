@@ -68,16 +68,16 @@ service cloud.firestore {
       allow delete: if false;
       match /team/{userUid} {
         allow get, list: if signedIn() && (resource.data.uid == request.auth.uid || (activeMember(gymId) && teamRecord(gymId).data.role == 'owner'));
+        // El navegador solo puede crear el registro inicial del dueño.
+        // Las altas, cambios y bajas de empleados pasan exclusivamente por Cloud Functions.
         allow create: if signedIn()
+          && request.auth.uid == userUid
           && request.resource.data.uid == userUid
           && request.resource.data.keys().hasOnly(['uid', 'name', 'email', 'role', 'active', 'createdAt'])
-          && request.resource.data.role in ['owner', 'complete', 'intermediate', 'basic', 'staff']
-          && request.resource.data.active is bool
-          && (gymOwner(gymId) || (userUid == request.auth.uid
-            && request.resource.data.role == 'owner'
-            && request.resource.data.active == true
-            && getAfter(/databases/$(database)/documents/gyms/$(gymId)).data.ownerUid == request.auth.uid));
-        allow update, delete: if gymOwner(gymId);
+          && request.resource.data.role == 'owner'
+          && request.resource.data.active == true
+          && getAfter(/databases/$(database)/documents/gyms/$(gymId)).data.ownerUid == request.auth.uid;
+        allow update, delete: if false;
       }
       match /clients/{clientUid} {
         allow get: if clientIsSelf() || hasPermission(gymId, 'viewClients') || hasPermission(gymId, 'takeAttendance');
