@@ -109,6 +109,34 @@ document.querySelector('#manual-grant-form').addEventListener('submit', async ev
     submit.disabled = false;
   }
 });
+document.querySelector('#manual-expiry-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const gymId = form.elements.gymId.value.trim();
+  const reason = form.elements.reason.value.trim();
+  const localExpiry = form.elements.expiresAt.value;
+  const expiresAt = localExpiry ? new Date(localExpiry).toISOString() : null;
+  if (!gymId || !reason) {
+    adminMessage.textContent = 'Completá el identificador del gimnasio y el motivo.';
+    return;
+  }
+  const label = expiresAt ? new Date(expiresAt).toLocaleString('es-AR') : 'sin vencimiento (indefinido)';
+  if (!window.confirm('¿Cambiar la habilitación manual de ' + gymId + ' para que venza ' + label + '?')) return;
+  const submit = form.querySelector('button[type="submit"]');
+  submit.disabled = true;
+  adminMessage.textContent = 'Actualizando vencimiento…';
+  try {
+    const updateExpiry = httpsCallable(getFunctions(services.app, 'southamerica-east1'), 'updateManualPlanExpiry');
+    const result = await updateExpiry({ gymId, expiresAt, reason });
+    adminMessage.textContent = 'Vencimiento actualizado para ' + result.data.plan.toUpperCase() + ': ' +
+      (result.data.expiresAt ? new Date(result.data.expiresAt).toLocaleString('es-AR') : 'habilitación indefinida.');
+    form.reset();
+  } catch (error) {
+    showError(error);
+  } finally {
+    submit.disabled = false;
+  }
+});
 document.querySelector('#refresh').addEventListener('click', loadRequests);
 signOutButton.addEventListener('click', () => signOut(services.auth));
 requestsElement.addEventListener('click', async event => {
