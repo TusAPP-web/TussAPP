@@ -52,7 +52,7 @@ service cloud.firestore {
       allow delete: if false;
     }
     match /publicCatalog/{gymId} {
-      allow get: if resource.data.published == true;
+      allow get: if !exists(/databases/$(database)/documents/publicCatalog/$(gymId)) || resource.data.published == true;
       allow list: if false;
       allow create, update, delete: if hasPermission(gymId, 'manageCatalog');
     }
