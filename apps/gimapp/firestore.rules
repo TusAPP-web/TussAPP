@@ -94,8 +94,9 @@ service cloud.firestore {
         allow update, delete: if false;
       }
       match /clients/{clientUid} {
-        allow get: if clientIsSelf() || hasPermission(gymId, 'viewClients') || hasPermission(gymId, 'manageClients') || (hasPermission(gymId, 'takeAttendance') && clientAssignedToMember(gymId));
-        allow list: if hasPermission(gymId, 'viewClients') || hasPermission(gymId, 'manageClients') || (hasPermission(gymId, 'takeAttendance') && clientAssignedToMember(gymId));
+        // Attendance-only staff receive minimal client fields through getGymWorkspace; direct reads would expose private fields.
+        allow get: if clientIsSelf() || hasPermission(gymId, 'viewClients') || hasPermission(gymId, 'manageClients');
+        allow list: if hasPermission(gymId, 'viewClients') || hasPermission(gymId, 'manageClients');
         allow create, update: if hasPermission(gymId, 'manageClients');
         allow delete: if false;
       }
