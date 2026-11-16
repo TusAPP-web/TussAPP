@@ -129,12 +129,17 @@ async function register(uidToken, gymId) {
       gymId: 'gym-plan', requestedPlan: 'gold',
     });
     assert.equal(duplicatePlanRequest.body.error?.status, 'ALREADY_EXISTS', JSON.stringify(duplicatePlanRequest.body));
+    const unauthorizedAdminQueue = await call('listPendingPlanChangeRequests', userA.idToken, {});
+    assert.equal(unauthorizedAdminQueue.body.error?.status, 'PERMISSION_DENIED', JSON.stringify(unauthorizedAdminQueue.body));
     const unauthorizedPlanReview = await call('resolvePlanChangeRequest', userA.idToken, {
       gymId: 'gym-plan', requestId: planRequest.body.result.requestId, decision: 'approve',
     });
     assert.equal(unauthorizedPlanReview.body.error?.status, 'PERMISSION_DENIED', JSON.stringify(unauthorizedPlanReview.body));
     const platformAdmin = await authUser('platform-admin@example.test');
     await db.doc('platformAdmins/' + platformAdmin.localId).set({ active: true });
+    const adminQueue = await call('listPendingPlanChangeRequests', platformAdmin.idToken, {});
+    assert.equal(adminQueue.status, 200, JSON.stringify(adminQueue.body));
+    assert.equal(adminQueue.body.result?.requests?.length, 1, JSON.stringify(adminQueue.body));
     const approvedPlan = await call('resolvePlanChangeRequest', platformAdmin.idToken, {
       gymId: 'gym-plan', requestId: planRequest.body.result.requestId, decision: 'approve',
     });
