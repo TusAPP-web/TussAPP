@@ -38,7 +38,7 @@ jobs:
         env:
           WIF_AUDIENCE: //iam.googleapis.com/projects/857919299458/locations/global/workloadIdentityPools/github-gimapp-preview/providers/github-actions
         run: |
-          node <<'NODE'
+          node --input-type=module <<'NODE'
           const endpoint = new URL(process.env.ACTIONS_ID_TOKEN_REQUEST_URL);
           endpoint.searchParams.set('audience', process.env.WIF_AUDIENCE);
 
