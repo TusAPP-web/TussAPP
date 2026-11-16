@@ -114,8 +114,9 @@ const { doc, getDoc, setDoc, updateDoc, Timestamp } = require('firebase/firestor
     await assertFails(getDoc(doc(proStaffDb, 'gyms/gym-pro/cash/cash-pro')));
     await assertSucceeds(getDoc(doc(proCashStaffDb, 'gyms/gym-pro/cash/cash-pro')));
     await assertFails(updateDoc(doc(proGoldManagerDb, 'gyms/gym-pro'), { name: 'Cambio no autorizado en Pro' }));
-    await assertSucceeds(getDoc(doc(basicStaffDb, 'gyms/gym-staff')));
-    await assertSucceeds(getDoc(doc(basicStaffDb, 'publicCatalog/gym-staff')));
+    await assertFails(getDoc(doc(basicStaffDb, 'gyms/gym-staff')));
+    await assertFails(getDoc(doc(basicStaffDb, 'publicCatalog/gym-staff')));
+    await assertSucceeds(getDoc(doc(ownerDb, 'gyms/gym-rules')));
     await assertFails(getDoc(doc(basicStaffDb, 'gyms/gym-staff/clients/client-a')));
     await assertSucceeds(getDoc(doc(goldStaffDb, 'gyms/gym-gold/clients/client-gold')));
     await assertSucceeds(setDoc(doc(goldStaffDb, 'gyms/gym-gold/attendance/allowed'), {
