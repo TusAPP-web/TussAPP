@@ -1,6 +1,6 @@
 // GimAPP · versión 0.1 · 3 de noviembre de 2026.
 import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js';
-import { getStaffMembership, signOutUser } from '../auth.js?v=20261115-team-4';
+import { getStaffMembership, signOutUser } from '../auth.js?v=20261115-team-5';
 import { getFirebaseServices } from '../firebase.js';
 
 function currentUser(auth) {
