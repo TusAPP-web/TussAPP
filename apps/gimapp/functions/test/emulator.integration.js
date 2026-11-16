@@ -20,6 +20,15 @@ async function authUser(email) {
   assert.equal(response.ok, true, JSON.stringify(body));
   return body;
 }
+async function verifyEmail(user) {
+  const response = await fetch('http://' + authHost + '/identitytoolkit.googleapis.com/v1/accounts:update?key=fake-api-key', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ idToken: user.idToken, emailVerified: true, returnSecureToken: true }),
+  });
+  const body = await response.json();
+  assert.equal(response.ok, true, JSON.stringify(body));
+  return body;
+}
 async function call(name, token, data) {
   const response = await fetch(base + '/' + name, {
     method: 'POST',
@@ -190,6 +199,89 @@ async function register(uidToken, gymId) {
       gymId: 'gym-plan', requestedPlan: 'gold',
     });
     assert.equal(requestWhileWaitingPayment.body.error?.status, 'ALREADY_EXISTS', JSON.stringify(requestWhileWaitingPayment.body));
+
+
+    // Invitaciones, cupos Pro, permisos por empleado y usuarios ilimitados Gold.
+    const teamOwner = await authUser('team-owner@example.test');
+    await db.doc('gyms/gym-team-pro').set({
+      ownerUid: teamOwner.localId, name: 'Gimnasio Pro Equipo',
+      status: 'active', plan: 'pro',
+      scheduleTurns: [{ id: 'turn-morning', day: 'Lunes', start: '08:00', end: '09:00', discipline: 'Funcional' }],
+    });
+    await db.doc('gyms/gym-team-pro/team/' + teamOwner.localId).set({
+      uid: teamOwner.localId, name: 'Dueño', email: 'team-owner@example.test',
+      role: 'owner', active: true, createdAt: FieldValue.serverTimestamp(),
+    });
+    const basicEmployeePermissions = {
+      viewSchedule: true, viewClients: true, viewRequests: true, takeAttendance: true,
+    };
+    const inviteOne = await call('createTeamInvitation', teamOwner.idToken, {
+      gymId: 'gym-team-pro', name: 'Empleado Uno', email: 'employee-one@example.test',
+      permissions: basicEmployeePermissions, assignedTurnIds: ['turn-morning'],
+    });
+    assert.equal(inviteOne.status, 200, JSON.stringify(inviteOne.body));
+    const inviteTwo = await call('createTeamInvitation', teamOwner.idToken, {
+      gymId: 'gym-team-pro', name: 'Empleado Dos', email: 'employee-two@example.test',
+      permissions: basicEmployeePermissions, assignedTurnIds: ['turn-morning'],
+    });
+    assert.equal(inviteTwo.status, 200, JSON.stringify(inviteTwo.body));
+    const inviteThree = await call('createTeamInvitation', teamOwner.idToken, {
+      gymId: 'gym-team-pro', name: 'Empleado Tres', email: 'employee-three@example.test',
+      permissions: basicEmployeePermissions, assignedTurnIds: ['turn-morning'],
+    });
+    assert.equal(inviteThree.body.error?.status, 'RESOURCE_EXHAUSTED', JSON.stringify(inviteThree.body));
+    const goldPermissionOnPro = await call('createTeamInvitation', teamOwner.idToken, {
+      gymId: 'gym-team-pro', name: 'Empleado Gold', email: 'employee-gold@example.test',
+      permissions: { ...basicEmployeePermissions, manageSchedule: true },
+      assignedTurnIds: ['turn-morning'],
+    });
+    assert.equal(goldPermissionOnPro.body.error?.status, 'FAILED_PRECONDITION', JSON.stringify(goldPermissionOnPro.body));
+    const employeeOne = await authUser('employee-one@example.test');
+    const verifiedEmployeeOne = await verifyEmail(employeeOne);
+    const wrongEmployee = await authUser('wrong-employee@example.test');
+    const verifiedWrongEmployee = await verifyEmail(wrongEmployee);
+    const wrongAcceptance = await call('acceptTeamInvitation', verifiedWrongEmployee.idToken, {
+      gymId: 'gym-team-pro', invitationId: inviteOne.body.result.invitationId,
+    });
+    assert.equal(wrongAcceptance.body.error?.status, 'PERMISSION_DENIED', JSON.stringify(wrongAcceptance.body));
+    const acceptedEmployee = await call('acceptTeamInvitation', verifiedEmployeeOne.idToken, {
+      gymId: 'gym-team-pro', invitationId: inviteOne.body.result.invitationId,
+    });
+    assert.equal(acceptedEmployee.status, 200, JSON.stringify(acceptedEmployee.body));
+    const employeeRecord = await db.doc('gyms/gym-team-pro/team/' + employeeOne.localId).get();
+    assert.equal(employeeRecord.data()?.role, 'staff');
+    assert.deepEqual(employeeRecord.data()?.assignedTurnIds, ['turn-morning']);
+    assert.equal(employeeRecord.data()?.permissions?.takeAttendance, true);
+    const employeeProfile = await db.doc('users/' + employeeOne.localId).get();
+    assert.equal(employeeProfile.data()?.currentGymId, 'gym-team-pro');
+    const forbiddenPermissionUpdate = await call('updateTeamMember', teamOwner.idToken, {
+      gymId: 'gym-team-pro', memberUid: employeeOne.localId,
+      permissions: { ...basicEmployeePermissions, manageSchedule: true },
+      assignedTurnIds: ['turn-morning'],
+    });
+    assert.equal(forbiddenPermissionUpdate.body.error?.status, 'FAILED_PRECONDITION', JSON.stringify(forbiddenPermissionUpdate.body));
+
+    const teamGoldOwner = await authUser('team-gold-owner@example.test');
+    await db.doc('gyms/gym-team-gold').set({
+      ownerUid: teamGoldOwner.localId, name: 'Gimnasio Gold Equipo',
+      status: 'active', plan: 'gold',
+      scheduleTurns: [{ id: 'turn-gold', day: 'Martes', start: '09:00', end: '10:00', discipline: 'Yoga' }],
+    });
+    await db.doc('gyms/gym-team-gold/team/' + teamGoldOwner.localId).set({
+      uid: teamGoldOwner.localId, name: 'Dueño Gold', email: 'team-gold-owner@example.test',
+      role: 'owner', active: true, createdAt: FieldValue.serverTimestamp(),
+    });
+    for (let i = 1; i <= 5; i++) {
+      const goldInvite = await call('createTeamInvitation', teamGoldOwner.idToken, {
+        gymId: 'gym-team-gold', name: 'Gold ' + i, email: 'gold-' + i + '@example.test',
+        permissions: { ...basicEmployeePermissions, approveRequests: true, manageSchedule: true, manageClients: true, manageCatalog: true },
+        assignedTurnIds: ['turn-gold'],
+      });
+      assert.equal(goldInvite.status, 200, JSON.stringify(goldInvite.body));
+    }
+    const goldTeam = await call('listTeam', teamGoldOwner.idToken, { gymId: 'gym-team-gold' });
+    assert.equal(goldTeam.status, 200, JSON.stringify(goldTeam.body));
+    assert.equal(goldTeam.body.result?.invitations?.length, 5);
 
     const invalidId = await call('enrollClientInTurn', winner.idToken, { gymId: '../bad', turnId: 'turn-1' });
     assert.equal(invalidId.body.error?.status, 'INVALID_ARGUMENT', JSON.stringify(invalidId.body));
