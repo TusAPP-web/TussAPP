@@ -247,13 +247,12 @@ exports.requestPlanChange = onCall(options, async (request) => {
   const uid = request.auth.uid;
   const gymRef = db.doc('gyms/' + gymId);
   const ownerRef = db.doc('gyms/' + gymId + '/team/' + uid);
-  const pendingQuery = db.collection('gyms/' + gymId + '/planRequests')
-    .where('status', '==', 'pending');
+  const controlRef = db.doc('gyms/' + gymId + '/planRequestControl/current');
   const requestRef = db.collection('gyms/' + gymId + '/planRequests').doc();
 
   return db.runTransaction(async tx => {
-    const [gymSnap, ownerSnap, pendingSnap] = await Promise.all([
-      tx.get(gymRef), tx.get(ownerRef), tx.get(pendingQuery),
+    const [gymSnap, ownerSnap, controlSnap] = await Promise.all([
+      tx.get(gymRef), tx.get(ownerRef), tx.get(controlRef),
     ]);
     if (!gymSnap.exists || !ownerSnap.exists ||
         gymSnap.data().ownerUid !== uid ||
@@ -266,8 +265,9 @@ exports.requestPlanChange = onCall(options, async (request) => {
     if (!(currentPlan in planRank) || planRank[requestedPlan] <= planRank[currentPlan]) {
       throw new HttpsError('failed-precondition', 'El plan solicitado no representa una mejora del plan actual.');
     }
-    if (!pendingSnap.empty) {
-      throw new HttpsError('already-exists', 'Ya hay una solicitud de cambio de plan pendiente.');
+    if (controlSnap.exists &&
+        ['pending', 'approved_waiting_payment'].includes(controlSnap.data().status)) {
+      throw new HttpsError('already-exists', 'Ya hay una solicitud de cambio de plan pendiente o esperando el pago.');
     }
     tx.create(requestRef, {
       gymId,
@@ -277,6 +277,11 @@ exports.requestPlanChange = onCall(options, async (request) => {
       currentPlan,
       status: 'pending',
       createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    tx.set(controlRef, {
+      activeRequestId: requestRef.id,
+      status: 'pending',
       updatedAt: FieldValue.serverTimestamp(),
     });
     return { success: true, requestId: requestRef.id, status: 'pending' };
@@ -297,16 +302,18 @@ exports.resolvePlanChangeRequest = onCall(options, async (request) => {
   const adminRef = db.doc('platformAdmins/' + uid);
   const gymRef = db.doc('gyms/' + gymId);
   const requestRef = db.doc('gyms/' + gymId + '/planRequests/' + requestId);
+  const controlRef = db.doc('gyms/' + gymId + '/planRequestControl/current');
   const auditRef = db.collection('gyms/' + gymId + '/audit').doc('plan-request-' + requestId);
 
   return db.runTransaction(async tx => {
-    const [adminSnap, gymSnap, requestSnap] = await Promise.all([
-      tx.get(adminRef), tx.get(gymRef), tx.get(requestRef),
+    const [adminSnap, gymSnap, requestSnap, controlSnap] = await Promise.all([
+      tx.get(adminRef), tx.get(gymRef), tx.get(requestRef), tx.get(controlRef),
     ]);
     if (!adminSnap.exists || adminSnap.data().active !== true) {
       throw new HttpsError('permission-denied', 'No tenés autorización para administrar planes de TusAPP.');
     }
-    if (!gymSnap.exists || !requestSnap.exists || requestSnap.data().status !== 'pending') {
+    if (!gymSnap.exists || !requestSnap.exists || requestSnap.data().status !== 'pending' ||
+        !controlSnap.exists || controlSnap.data().activeRequestId !== requestId) {
       throw new HttpsError('failed-precondition', 'La solicitud no existe o ya fue resuelta.');
     }
     const planRequest = requestSnap.data();
@@ -324,6 +331,11 @@ exports.resolvePlanChangeRequest = onCall(options, async (request) => {
       reviewedBy: uid,
       reviewedAt: FieldValue.serverTimestamp(),
       reviewNote: note || null,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    tx.set(controlRef, {
+      activeRequestId: decision === 'approve' ? requestId : null,
+      status: nextStatus,
       updatedAt: FieldValue.serverTimestamp(),
     });
     tx.create(auditRef, {
