@@ -56,6 +56,13 @@ const { collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where, Times
         permissions: { takeAttendance: true },
         assignedTurnIds: ['turn-allowed'],
       });
+      await setDoc(doc(db, 'gyms/gym-gold/team/staff-schedule-only'), {
+        uid: 'staff-schedule-only', role: 'staff', active: true,
+        permissions: { viewSchedule: true },
+        assignedTurnIds: ['turn-allowed'],
+      });
+      await setDoc(doc(db, 'gyms/gym-gold/weeklySchedule/entry-a'), { turnId: 'turn-allowed' });
+      await setDoc(doc(db, 'gyms/gym-gold/exceptions/exception-a'), { turnId: 'turn-allowed' });
       await setDoc(doc(db, 'gyms/gym-gold/clients/client-gold'), {
         clientUid: 'client-gold', firstName: 'Cliente', assignedTurnIds: ['turn-allowed'],
       });
@@ -102,6 +109,7 @@ const { collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where, Times
     const expiredOwnerDb = env.authenticatedContext('owner-expired').firestore();
     const goldStaffDb = env.authenticatedContext('staff-gold').firestore();
     const attendanceOnlyDb = env.authenticatedContext('staff-attendance-only').firestore();
+    const scheduleOnlyDb = env.authenticatedContext('staff-schedule-only').firestore();
 
     await assertSucceeds(getDoc(doc(clientDb, 'gyms/gym-rules/clients/client-a')));
     await assertFails(getDoc(doc(otherDb, 'gyms/gym-rules/clients/client-a')));
@@ -135,6 +143,8 @@ const { collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where, Times
       where('assignedTurnIds', 'array-contains-any', ['turn-allowed']),
     )));
     assert.equal(assignedClientQuery.size, 1);
+    await assertFails(getDoc(doc(scheduleOnlyDb, 'gyms/gym-gold/weeklySchedule/entry-a')));
+    await assertFails(getDoc(doc(scheduleOnlyDb, 'gyms/gym-gold/exceptions/exception-a')));
     await assertSucceeds(setDoc(doc(goldStaffDb, 'gyms/gym-gold/attendance/allowed'), {
       trainerUid: 'staff-gold', clientUid: 'client-gold', turnId: 'turn-allowed',
       date: '2026-11-15', status: 'present',
