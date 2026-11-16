@@ -1,6 +1,6 @@
 // GimAPP · versión 0.4 · 3 de noviembre de 2026.
 import { APP_CONFIG } from '../config.js';
-import { acceptTeamInvitation, getStaffMembership, registerForTeamInvitation, resendTeamInvitationVerification, registerGymOwner, registerGymOwnerWithGoogle, requestPasswordReset, signInForTeamInvitation, signInForTeamInvitationWithGoogle, signInGymStaff, signInGymStaffWithGoogle } from '../auth.js?v=20261115-team-2';
+import { acceptTeamInvitation, getStaffMembership, registerForTeamInvitation, resendTeamInvitationVerification, registerGymOwner, registerGymOwnerWithGoogle, requestPasswordReset, signInForTeamInvitation, signInForTeamInvitationWithGoogle, signInGymStaff, signInGymStaffWithGoogle } from '../auth.js?v=20261115-team-3';
 
 const loginView = document.querySelector('#login-view');
 const ownerRegistrationView = document.querySelector('#owner-registration-view');
