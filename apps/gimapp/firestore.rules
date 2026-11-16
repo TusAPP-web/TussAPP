@@ -52,7 +52,7 @@ service cloud.firestore {
       allow delete: if false;
     }
     match /publicCatalog/{gymId} {
-      allow get: if resource.data.published == true || activeMember(gymId);
+      allow get: if resource.data.published == true;
       allow list: if false;
       allow create, update, delete: if hasPermission(gymId, 'manageCatalog');
     }
@@ -62,7 +62,7 @@ service cloud.firestore {
         && request.resource.data.status == 'active'
         && request.resource.data.plan == 'free'
         && request.resource.data.keys().hasOnly(['name', 'ownerUid', 'plan', 'status', 'createdAt', 'updatedAt']);
-      allow read: if activeMember(gymId);
+      allow read: if signedIn() && request.auth.uid == resource.data.ownerUid && activeMember(gymId) && teamRecord(gymId).data.role == 'owner';
       allow update: if hasPermission(gymId, 'manageSchedule')
         && request.resource.data.ownerUid == resource.data.ownerUid
         && request.resource.data.plan == resource.data.plan
