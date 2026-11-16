@@ -136,7 +136,7 @@ const { collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where, Times
     await assertSucceeds(getDoc(doc(ownerDb, 'gyms/gym-rules')));
     await assertFails(getDoc(doc(basicStaffDb, 'gyms/gym-staff/clients/client-a')));
     await assertSucceeds(getDoc(doc(goldStaffDb, 'gyms/gym-gold/clients/client-gold')));
-    await assertSucceeds(getDoc(doc(attendanceOnlyDb, 'gyms/gym-gold/clients/client-gold')));
+    await assertFails(getDoc(doc(attendanceOnlyDb, 'gyms/gym-gold/clients/client-gold'))); // Solo puede acceder mediante el workspace filtrado.
     await assertFails(getDoc(doc(attendanceOnlyDb, 'gyms/gym-gold/clients/client-other-turn')));
     await assertFails(getDocs(query(
       collection(attendanceOnlyDb, 'gyms/gym-gold/clients'),
