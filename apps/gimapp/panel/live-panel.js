@@ -65,6 +65,8 @@ async function load() {
   const workspace = await getGymWorkspace(membership.gymId);
   const gym = workspace.gym;
   const catalog = workspace.catalog;
+  state.gym = gym;
+  state.catalog = catalog;
   const canAdmin = canManageGym();
   const [requests, clients, cash, planRequests, team] = await Promise.all([
     (can('viewRequests') || can('approveRequests')) ? getPendingRequests(membership.gymId) : Promise.resolve([]),
