@@ -1,6 +1,6 @@
 // GimAPP · versión 0.4 · 3 de noviembre de 2026.
 import { APP_CONFIG } from '../config.js';
-import { acceptTeamInvitation, getStaffMembership, registerForTeamInvitation, registerGymOwner, registerGymOwnerWithGoogle, requestPasswordReset, signInForTeamInvitation, signInForTeamInvitationWithGoogle, signInGymStaff, signInGymStaffWithGoogle } from '../auth.js?v=20261115-team-1';
+import { acceptTeamInvitation, getStaffMembership, registerForTeamInvitation, resendTeamInvitationVerification, registerGymOwner, registerGymOwnerWithGoogle, requestPasswordReset, signInForTeamInvitation, signInForTeamInvitationWithGoogle, signInGymStaff, signInGymStaffWithGoogle } from '../auth.js?v=20261115-team-1';
 
 const loginView = document.querySelector('#login-view');
 const ownerRegistrationView = document.querySelector('#owner-registration-view');
@@ -101,6 +101,10 @@ if (isTeamInvitation) {
       openPanel(membership);
     } catch (error) {
       console.error('[GimAPP] No se pudo aceptar la invitación:', error);
+      if (error?.code === 'functions/failed-precondition' && String(error.message || '').toLowerCase().includes('verific')) {
+        document.querySelector('#invitation-resend-verification').hidden = false;
+        document.querySelector('#invitation-verified').hidden = false;
+      }
       invitationMessage(userMessage(error));
     }
   }
@@ -126,9 +130,18 @@ if (isTeamInvitation) {
         password: invitationPassword.value,
       });
       document.querySelector('#invitation-verified').hidden = false;
+      document.querySelector('#invitation-resend-verification').hidden = false;
       invitationMessage('Te enviamos un correo para verificar tu dirección. Abrilo y después volvé acá para aceptar la invitación.');
     } catch (error) {
       console.error('[GimAPP] No se pudo crear la cuenta:', error);
+      invitationMessage(userMessage(error));
+    }
+  });
+  document.querySelector('#invitation-resend-verification').addEventListener('click', async () => {
+    try {
+      await resendTeamInvitationVerification();
+      invitationMessage('Te enviamos otro correo de verificación.');
+    } catch (error) {
       invitationMessage(userMessage(error));
     }
   });
