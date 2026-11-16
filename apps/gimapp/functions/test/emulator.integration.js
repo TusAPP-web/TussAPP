@@ -153,6 +153,21 @@ async function register(uidToken, gymId) {
       gymId: 'gym-trial', plan: 'gold', reason: 'Prueba',
     });
     assert.equal(unauthorizedGrant.body.error?.status, 'PERMISSION_DENIED', JSON.stringify(unauthorizedGrant.body));
+    await db.doc('gyms/gym-trial-overcap').set({
+      ownerUid: planOwner.localId, name: 'Gimnasio con exceso de cuentas', status: 'active', plan: 'free',
+    });
+    await db.doc('gyms/gym-trial-overcap/team/' + planOwner.localId).set({
+      uid: planOwner.localId, role: 'owner', active: true,
+    });
+    for (let i = 1; i <= 3; i++) {
+      await db.doc('gyms/gym-trial-overcap/team/legacy-staff-' + i).set({
+        uid: 'legacy-staff-' + i, role: 'staff', active: true,
+      });
+    }
+    const overCapGrant = await call('grantPlanManually', platformAdmin.idToken, {
+      gymId: 'gym-trial-overcap', plan: 'pro', reason: 'Prueba de límite de cuentas',
+    });
+    assert.equal(overCapGrant.body.error?.status, 'FAILED_PRECONDITION', JSON.stringify(overCapGrant.body));
     const trialExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
     const manualGrant = await call('grantPlanManually', platformAdmin.idToken, {
       gymId: 'gym-trial', plan: 'pro', reason: 'Prueba piloto autorizada', expiresAt: trialExpiry,
