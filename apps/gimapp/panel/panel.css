@@ -15,3 +15,17 @@
 .locked-feature h2{margin:0}
 .locked-feature p{max-width:560px;line-height:1.6;margin:0}
 @media(max-width:650px){.nav-item.locked::after{content:'🔒';font-size:8px;margin-left:0;position:absolute;right:2px;top:3px}.nav-item{position:relative}}
+
+
+/* Gestión de equipo: invitaciones, permisos y horarios asignados. */
+.team-check-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;margin:10px 0 18px}
+.team-check{display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid var(--line,#e5e7eb);border-radius:10px;background:var(--surface,#fff);font-size:.9rem}
+.team-check input{width:17px;height:17px;accent-color:var(--primary,#3157d5);flex:0 0 auto}
+.team-check.disabled{opacity:.55}
+.team-member{margin-top:12px}
+.team-member h3{margin:0 0 4px}
+.team-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.team-invitation-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line,#e5e7eb)}
+.team-invitation-row:last-child{border-bottom:0}
+.team-invitation-row p{margin:4px 0 0}
+@media(max-width:640px){.team-invitation-row{align-items:flex-start;flex-direction:column}.team-actions .button{flex:1}}
