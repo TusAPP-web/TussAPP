@@ -155,3 +155,27 @@ export async function requestPlanChange({ gymId, requestedPlan }) {
   const result = await submit({ gymId, requestedPlan });
   return result.data;
 }
+
+
+async function callTeamFunction(name, data) {
+  const { app } = await getFirebaseServices();
+  const callable = httpsCallable(getFunctions(app, 'southamerica-east1'), name);
+  const result = await callable(data);
+  return result.data;
+}
+
+export async function listTeam(gymId) {
+  return callTeamFunction('listTeam', { gymId });
+}
+export async function createTeamInvitation(values) {
+  return callTeamFunction('createTeamInvitation', values);
+}
+export async function updateTeamMember(values) {
+  return callTeamFunction('updateTeamMember', values);
+}
+export async function revokeTeamInvitation(values) {
+  return callTeamFunction('revokeTeamInvitation', values);
+}
+export async function deactivateTeamMember(values) {
+  return callTeamFunction('deactivateTeamMember', values);
+}
