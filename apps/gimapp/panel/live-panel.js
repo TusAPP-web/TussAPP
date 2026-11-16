@@ -150,6 +150,8 @@ function teamPage() {
   const plan = effectivePlan(state.gym);
   const members = state.team.members || [];
   const invitations = state.team.invitations || [];
+  const accountCount = members.filter(member => member.active).length + invitations.length;
+  const atProLimit = plan === 'pro' && accountCount >= 3;
   if (!['pro', 'gold'].includes(plan)) {
     return `${heading('Equipo', 'Sumá profesionales y organizá sus horarios y permisos.')}<section class="card locked-feature"><div class="locked-feature-icon">🔒</div><h2>Disponible en Pro y Gold</h2><p class="muted">El plan Gratis incluye una sola cuenta: la del dueño. Pro permite hasta 3 cuentas en total; Gold permite usuarios internos ilimitados y permisos avanzados.</p><button class="button primary" data-page="planes">Conocer planes</button></section>`;
   }
@@ -176,7 +178,6 @@ function teamPage() {
     </article>`).join('');
   const invitationRows = invitations.map(invite => `
     <div class="team-invitation-row"><div><b>${esc(invite.email)}</b><p class="small muted">Vence: ${new Date(invite.expiresAt).toLocaleDateString('es-AR')}</p></div><button class="button small danger" data-action="revoke-team-invitation" data-id="${esc(invite.id)}">Revocar</button></div>`).join('');
-  const accountCount = members.filter(member => member.active).length + invitations.length;
   return `${heading('Equipo', 'Invitá empleados, asignales horarios y definí qué pueden hacer.')}
     <section class="card">
       <div class="card-head"><h2>Uso de cuentas</h2><span class="status">${plan.toUpperCase()}</span></div>
@@ -184,12 +185,12 @@ function teamPage() {
     </section>
     <section class="card team-invite-card">
       <div class="card-head"><h2>Invitar a un empleado</h2></div>
-      <label class="field">Nombre del empleado<input id="team-invite-name" maxlength="120" placeholder="Nombre y apellido"></label>
-      <label class="field">Correo electrónico<input id="team-invite-email" type="email" maxlength="254" placeholder="empleado@correo.com"></label>
+      <label class="field">Nombre del empleado<input id="team-invite-name" maxlength="120" required placeholder="Nombre y apellido"></label>
+      <label class="field">Correo electrónico<input id="team-invite-email" type="email" maxlength="254" required placeholder="empleado@correo.com"></label>
       <div class="section-label">Permisos que tendrá</div><div class="team-check-grid" data-team-new-permissions>${permissionInputs({}, 'new')}</div>
       <div class="section-label">Horarios que tendrá asignados</div><div class="team-check-grid" data-team-new-turns>${turnInputs([], 'new')}</div>
       <p class="small muted">La invitación vence en 7 días. El empleado debe ingresar con el correo indicado y verificarlo. Después podés copiarle el enlace para que complete el alta.</p>
-      <button class="button primary" data-action="create-team-invitation">Crear invitación</button>
+      ${atProLimit ? '<p class="small muted">Llegaste al límite de 3 cuentas del plan Pro. Para sumar otra persona, desactivá una cuenta o pasá a Gold.</p>' : ''}<button class="button primary" data-action="create-team-invitation" ${atProLimit ? 'disabled' : ''}>Crear invitación</button>
     </section>
     <section class="card">
       <div class="card-head"><h2>Invitaciones pendientes</h2><span class="status">${invitations.length}</span></div>
