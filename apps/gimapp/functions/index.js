@@ -1,6 +1,7 @@
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { initializeApp } = require('firebase-admin/app');
-const { getFirestore, FieldValue } = require('firebase-admin/firestore');
+const { getFirestore, FieldValue, Timestamp } = require('firebase-admin/firestore');
 
 initializeApp();
 const db = getFirestore();
@@ -312,6 +313,96 @@ exports.listPendingPlanChangeRequests = onCall(options, async (request) => {
   });
   items.sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
   return { requests: items };
+});
+
+// Habilitación manual y gratuita para pruebas, demostraciones o cortesías.
+exports.grantPlanManually = onCall(options, async (request) => {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Iniciá sesión.');
+  const adminUid = request.auth.uid;
+  const adminSnap = await db.doc('platformAdmins/' + adminUid).get();
+  if (!adminSnap.exists || adminSnap.data().active !== true) {
+    throw new HttpsError('permission-denied', 'No tenés autorización para administrar planes de TusAPP.');
+  }
+  const gymId = required(request.data?.gymId, 'el identificador del gimnasio', 128);
+  const plan = request.data?.plan;
+  const reason = required(request.data?.reason, 'el motivo de la habilitación', 500);
+  if (!/^[A-Za-z0-9_-]+$/.test(gymId) || !['pro', 'gold'].includes(plan)) {
+    throw new HttpsError('invalid-argument', 'El gimnasio o el plan seleccionado no son válidos.');
+  }
+  let expiresAt = null;
+  if (request.data?.expiresAt) {
+    const date = new Date(request.data.expiresAt);
+    if (Number.isNaN(date.getTime()) || date.getTime() <= Date.now()) {
+      throw new HttpsError('invalid-argument', 'La fecha de vencimiento debe ser futura.');
+    }
+    if (date.getTime() > Date.now() + 366 * 24 * 60 * 60 * 1000) {
+      throw new HttpsError('invalid-argument', 'La habilitación temporal no puede superar 366 días.');
+    }
+    expiresAt = Timestamp.fromDate(date);
+  }
+  const gymRef = db.doc('gyms/' + gymId);
+  const auditRef = db.collection('gyms/' + gymId + '/audit').doc();
+  return db.runTransaction(async tx => {
+    const gymSnap = await tx.get(gymRef);
+    if (!gymSnap.exists) throw new HttpsError('not-found', 'No se encontró el gimnasio indicado.');
+    const previousPlan = gymSnap.data().plan || 'free';
+    tx.update(gymRef, {
+      plan,
+      planSource: 'manual',
+      planGrantedAt: FieldValue.serverTimestamp(),
+      planGrantedBy: adminUid,
+      planGrantReason: reason,
+      planExpiresAt: expiresAt,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    tx.create(auditRef, {
+      type: 'manual-plan-granted',
+      previousPlan,
+      plan,
+      grantedBy: adminUid,
+      reason,
+      expiresAt,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    return { success: true, gymId, plan, planSource: 'manual', expiresAt: expiresAt?.toDate().toISOString() || null };
+  });
+});
+
+// Las habilitaciones temporales vencidas vuelven a Gratis automáticamente.
+// Una suscripción paga o una nueva habilitación manual nunca se revierte por un vencimiento antiguo.
+exports.expireManualPlanGrants = onSchedule({
+  schedule: 'every day 03:15',
+  timeZone: 'America/Argentina/Buenos_Aires',
+  region: 'southamerica-east1',
+}, async () => {
+  const now = Timestamp.now();
+  const expired = await db.collection('gyms')
+    .where('planSource', '==', 'manual')
+    .where('planExpiresAt', '<=', now)
+    .limit(200)
+    .get();
+  for (const item of expired.docs) {
+    await db.runTransaction(async tx => {
+      const fresh = await tx.get(item.ref);
+      const data = fresh.data();
+      if (!fresh.exists || data.planSource !== 'manual' ||
+          !data.planExpiresAt || data.planExpiresAt.toMillis() > Date.now()) return;
+      tx.update(item.ref, {
+        plan: 'free',
+        planSource: 'free',
+        planExpiresAt: null,
+        planGrantedBy: FieldValue.delete(),
+        planGrantReason: FieldValue.delete(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      tx.create(item.ref.collection('audit').doc(), {
+        type: 'manual-plan-expired',
+        previousPlan: data.plan,
+        plan: 'free',
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    });
+  }
 });
 
 exports.resolvePlanChangeRequest = onCall(options, async (request) => {
