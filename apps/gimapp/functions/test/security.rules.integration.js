@@ -100,6 +100,7 @@ const { doc, getDoc, setDoc, updateDoc, Timestamp } = require('firebase/firestor
     await assertSucceeds(getDoc(doc(ownerDb, 'gyms/gym-rules/clients/client-a')));
     await assertFails(getDoc(doc(ownerDb, 'gyms/gym-rules/cash/cash-free')));
     await assertSucceeds(getDoc(doc(proOwnerDb, 'gyms/gym-pro/cash/cash-pro')));
+    await assertSucceeds(updateDoc(doc(proOwnerDb, 'gyms/gym-pro'), { name: 'Gimnasio Pro actualizado' }));
     await assertFails(getDoc(doc(proStaffDb, 'gyms/gym-pro/cash/cash-pro')));
     await assertSucceeds(getDoc(doc(basicStaffDb, 'gyms/gym-staff')));
     await assertSucceeds(getDoc(doc(basicStaffDb, 'publicCatalog/gym-staff')));
