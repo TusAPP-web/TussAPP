@@ -155,7 +155,7 @@ function teamPage() {
   }
   const permissionInputs = (selected = {}, prefix = 'new') => teamPermissionLabels.map(([key, label]) => {
     const disabled = plan !== 'gold' && goldOnlyPermissions.has(key);
-    return `<label class="team-check ${disabled ? 'disabled' : ''}"><input type="checkbox" ${selected[key] === true ? 'checked' : ''} data-permission="${key}" ${prefix === 'new' ? 'data-new-permission' : ''} ${disabled ? 'disabled' : ''}><span>${label}${disabled ? ' · Gold' : ''}</span></label>`;
+    return `<label class="team-check ${disabled ? 'disabled' : ''}"><input type="checkbox" ${selected[key] === true && !disabled ? 'checked' : ''} data-permission="${key}" ${prefix === 'new' ? 'data-new-permission' : ''} ${disabled ? 'disabled' : ''}><span>${label}${disabled ? ' · Gold' : ''}</span></label>`;
   }).join('');
   const turnInputs = (selected = [], prefix = 'new') => (state.catalog.turns || []).map(turn =>
     `<label class="team-check"><input type="checkbox" value="${esc(turn.id)}" ${selected.includes(turn.id) ? 'checked' : ''} data-turn="${esc(turn.id)}" ${prefix === 'new' ? 'data-new-turn' : ''}><span>${esc(turn.day)} · ${esc(turn.start)} · ${esc(turn.discipline)}</span></label>`
