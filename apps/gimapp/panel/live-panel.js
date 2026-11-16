@@ -5,7 +5,8 @@ const app = document.querySelector('#app');
 const nav = document.querySelector('#main-nav');
 const modal = document.querySelector('#modal');
 const modalContent = document.querySelector('#modal-content');
-const { user, membership } = window.GIMAPP_SESSION;
+const { user } = window.GIMAPP_SESSION;
+let membership = window.GIMAPP_SESSION.membership;
 const weekDays = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 let page = 'inicio', month = new Date(), selectedDate = new Date(), state = { gym: null, catalog: { turns: [] }, requests: [], planRequests: [], clients: [], cash: [], team: { members: [], invitations: [], plan: 'free' } };
 const teamPermissionLabels = [
@@ -62,6 +63,7 @@ function table(rows, headers) { return `<div class="table-wrap"><table class="da
 function openModal(title, body, actions = '') { modalContent.innerHTML = `<div class="modal-inner"><div class="modal-head"><h2>${title}</h2><button class="close" data-close aria-label="Cerrar">×</button></div>${body}<div class="modal-actions">${actions}</div></div>`; modal.showModal(); }
 async function load() {
   const workspace = await getGymWorkspace(membership.gymId);
+  membership = workspace.membership || membership;
   const gym = workspace.gym;
   const catalog = workspace.catalog;
   state.gym = gym;
