@@ -101,7 +101,7 @@ exports.getGymWorkspace = onCall(options, async request => {
     db.doc('gyms/' + gymId + '/team/' + uid).get(),
     db.doc('publicCatalog/' + gymId).get(),
   ]);
-  if (!gymSnap.exists || !memberSnap.exists || memberSnap.data().uid !== uid || memberSnap.data().active !== true) {
+  if (!gymSnap.exists || gymSnap.data().status !== 'active' || !memberSnap.exists || memberSnap.data().uid !== uid || memberSnap.data().active !== true) {
     throw new HttpsError('permission-denied', 'No tenés acceso activo a este gimnasio.');
   }
   const gym = gymSnap.data();
@@ -156,6 +156,7 @@ exports.createTeamInvitation = onCall(options, async request => {
   const expiresAt = Timestamp.fromMillis(Date.now() + 7 * 24 * 60 * 60 * 1000);
   return db.runTransaction(async tx => {
     const { gym } = await ownerContext(tx, gymId, uid);
+    if (gym.status !== 'active') throw new HttpsError('failed-precondition', 'El gimnasio no está activo.');
     if (!planIsActive(gym)) {
       throw new HttpsError('failed-precondition', 'La gestión de empleados requiere un plan Pro o Gold activo.');
     }
@@ -265,6 +266,7 @@ exports.updateTeamMember = onCall(options, async request => {
   const memberRef = gymRef.collection('team').doc(memberUid);
   return db.runTransaction(async tx => {
     const { gym } = await ownerContext(tx, gymId, request.auth.uid);
+    if (gym.status !== 'active') throw new HttpsError('failed-precondition', 'El gimnasio no está activo.');
     if (!planIsActive(gym)) throw new HttpsError('failed-precondition', 'La gestión del equipo requiere Pro o Gold activo.');
     validatePlanPermissions(gym, permissions);
     const assignedTurnIds = validateTurns(gym, request.data?.assignedTurnIds || []);
