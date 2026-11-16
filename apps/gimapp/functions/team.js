@@ -56,6 +56,15 @@ async function countReservedSeats(tx, gymRef) {
   const pending = invitations.docs.filter(item => item.data().expiresAt?.toMillis?.() > now);
   return members.size + pending.length;
 }
+function validatePlanPermissions(gym, permissions) {
+  if (gym.plan === 'pro') {
+    const proKeys = ['viewSchedule', 'viewClients', 'viewRequests', 'takeAttendance'];
+    if (Object.keys(permissions).some(key => permissions[key] && !proKeys.includes(key))) {
+      throw new HttpsError('failed-precondition', 'Los permisos avanzados están disponibles en Gold.');
+    }
+  }
+  return permissions;
+}
 function validateTurns(gym, turnIds) {
   if (!Array.isArray(turnIds) || turnIds.length > 100 ||
       turnIds.some(id => !validId(id))) {
@@ -87,6 +96,7 @@ exports.createTeamInvitation = onCall(options, async request => {
     if (!planIsActive(gym)) {
       throw new HttpsError('failed-precondition', 'La gestión de empleados requiere un plan Pro o Gold activo.');
     }
+    validatePlanPermissions(gym, permissions);
     const turnIds = validateTurns(gym, request.data?.assignedTurnIds || []);
     const [seats, duplicate] = await Promise.all([
       countReservedSeats(tx, gymRef),
@@ -188,6 +198,7 @@ exports.updateTeamMember = onCall(options, async request => {
   return db.runTransaction(async tx => {
     const { gym } = await ownerContext(tx, gymId, request.auth.uid);
     if (!planIsActive(gym)) throw new HttpsError('failed-precondition', 'La gestión del equipo requiere Pro o Gold activo.');
+    validatePlanPermissions(gym, permissions);
     const assignedTurnIds = validateTurns(gym, request.data?.assignedTurnIds || []);
     const memberSnap = await tx.get(memberRef);
     if (!memberSnap.exists || memberSnap.data().role === 'owner' || memberSnap.data().active !== true) {
