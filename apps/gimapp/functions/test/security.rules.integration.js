@@ -23,6 +23,19 @@ const { doc, getDoc, setDoc, updateDoc, Timestamp } = require('firebase/firestor
       await setDoc(doc(db, 'gyms/gym-pro/team/owner-pro'), {
         uid: 'owner-pro', role: 'owner', active: true,
       });
+      await setDoc(doc(db, 'gyms/gym-pro/team/staff-pro'), {
+        uid: 'staff-pro', role: 'intermediate', active: true,
+      });
+      await setDoc(doc(db, 'gyms/gym-staff'), {
+        ownerUid: 'owner-staff', status: 'active', plan: 'free', name: 'Gimnasio privado',
+      });
+      await setDoc(doc(db, 'gyms/gym-staff/team/staff-basic'), {
+        uid: 'staff-basic', role: 'basic', active: true,
+      });
+      await setDoc(doc(db, 'publicCatalog/gym-staff'), {
+        published: false, gymName: 'Gimnasio privado', turns: [{ id: 'turn-private' }],
+      });
+
       await setDoc(doc(db, 'gyms/gym-pro'), {
         ownerUid: 'owner-pro', status: 'active', plan: 'pro', name: 'Gimnasio Pro',
       });
@@ -55,6 +68,8 @@ const { doc, getDoc, setDoc, updateDoc, Timestamp } = require('firebase/firestor
     const anonymousDb = env.unauthenticatedContext().firestore();
     const ownerDb = env.authenticatedContext('owner-a').firestore();
     const proOwnerDb = env.authenticatedContext('owner-pro').firestore();
+    const proStaffDb = env.authenticatedContext('staff-pro').firestore();
+    const basicStaffDb = env.authenticatedContext('staff-basic').firestore();
     const expiredOwnerDb = env.authenticatedContext('owner-expired').firestore();
 
     await assertSucceeds(getDoc(doc(clientDb, 'gyms/gym-rules/clients/client-a')));
@@ -73,6 +88,10 @@ const { doc, getDoc, setDoc, updateDoc, Timestamp } = require('firebase/firestor
     await assertSucceeds(getDoc(doc(ownerDb, 'gyms/gym-rules/clients/client-a')));
     await assertFails(getDoc(doc(ownerDb, 'gyms/gym-rules/cash/cash-free')));
     await assertSucceeds(getDoc(doc(proOwnerDb, 'gyms/gym-pro/cash/cash-pro')));
+    await assertFails(getDoc(doc(proStaffDb, 'gyms/gym-pro/cash/cash-pro')));
+    await assertSucceeds(getDoc(doc(basicStaffDb, 'gyms/gym-staff')));
+    await assertSucceeds(getDoc(doc(basicStaffDb, 'publicCatalog/gym-staff')));
+    await assertFails(getDoc(doc(basicStaffDb, 'gyms/gym-staff/clients/client-a')));
     await assertFails(getDoc(doc(expiredOwnerDb, 'gyms/gym-expired/cash/cash-expired')));
     await env.withSecurityRulesDisabled(async context => {
       const retainedCash = await getDoc(doc(context.firestore(), 'gyms/gym-expired/cash/cash-expired'));
