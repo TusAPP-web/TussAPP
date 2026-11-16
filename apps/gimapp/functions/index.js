@@ -231,3 +231,108 @@ exports.approveClientRequest = onCall(options, async (request) => {
     return { clientId: displayId, assignedTurnIds: turnIds };
   });
 });
+
+
+// Solicitudes de migración de plan. La aprobación no activa el plan:
+// queda pendiente la integración del pago confirmado por Mercado Pago.
+const planRank = { free: 0, pro: 1, gold: 2 };
+
+exports.requestPlanChange = onCall(options, async (request) => {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Iniciá sesión.');
+  const gymId = required(request.data?.gymId, 'el gimnasio', 128);
+  const requestedPlan = request.data?.requestedPlan;
+  if (!/^[A-Za-z0-9_-]+$/.test(gymId) || !['pro', 'gold'].includes(requestedPlan)) {
+    throw new HttpsError('invalid-argument', 'La solicitud de plan no es válida.');
+  }
+  const uid = request.auth.uid;
+  const gymRef = db.doc('gyms/' + gymId);
+  const ownerRef = db.doc('gyms/' + gymId + '/team/' + uid);
+  const pendingQuery = db.collection('gyms/' + gymId + '/planRequests')
+    .where('status', '==', 'pending');
+  const requestRef = db.collection('gyms/' + gymId + '/planRequests').doc();
+
+  return db.runTransaction(async tx => {
+    const [gymSnap, ownerSnap, pendingSnap] = await Promise.all([
+      tx.get(gymRef), tx.get(ownerRef), tx.get(pendingQuery),
+    ]);
+    if (!gymSnap.exists || !ownerSnap.exists ||
+        gymSnap.data().ownerUid !== uid ||
+        ownerSnap.data().uid !== uid ||
+        ownerSnap.data().active !== true ||
+        ownerSnap.data().role !== 'owner') {
+      throw new HttpsError('permission-denied', 'Solo el dueño activo puede solicitar un cambio de plan.');
+    }
+    const currentPlan = gymSnap.data().plan || 'free';
+    if (!(currentPlan in planRank) || planRank[requestedPlan] <= planRank[currentPlan]) {
+      throw new HttpsError('failed-precondition', 'El plan solicitado no representa una mejora del plan actual.');
+    }
+    if (!pendingSnap.empty) {
+      throw new HttpsError('already-exists', 'Ya hay una solicitud de cambio de plan pendiente.');
+    }
+    tx.create(requestRef, {
+      gymId,
+      gymName: gymSnap.data().name || '',
+      requestedBy: uid,
+      requestedPlan,
+      currentPlan,
+      status: 'pending',
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    return { success: true, requestId: requestRef.id, status: 'pending' };
+  });
+});
+
+exports.resolvePlanChangeRequest = onCall(options, async (request) => {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Iniciá sesión.');
+  const gymId = required(request.data?.gymId, 'el gimnasio', 128);
+  const requestId = required(request.data?.requestId, 'la solicitud', 128);
+  const decision = request.data?.decision;
+  if (!/^[A-Za-z0-9_-]+$/.test(gymId) ||
+      !/^[A-Za-z0-9_-]+$/.test(requestId) ||
+      !['approve', 'reject'].includes(decision)) {
+    throw new HttpsError('invalid-argument', 'La resolución de la solicitud no es válida.');
+  }
+  const uid = request.auth.uid;
+  const adminRef = db.doc('platformAdmins/' + uid);
+  const gymRef = db.doc('gyms/' + gymId);
+  const requestRef = db.doc('gyms/' + gymId + '/planRequests/' + requestId);
+  const auditRef = db.collection('gyms/' + gymId + '/audit').doc('plan-request-' + requestId);
+
+  return db.runTransaction(async tx => {
+    const [adminSnap, gymSnap, requestSnap] = await Promise.all([
+      tx.get(adminRef), tx.get(gymRef), tx.get(requestRef),
+    ]);
+    if (!adminSnap.exists || adminSnap.data().active !== true) {
+      throw new HttpsError('permission-denied', 'No tenés autorización para administrar planes de TusAPP.');
+    }
+    if (!gymSnap.exists || !requestSnap.exists || requestSnap.data().status !== 'pending') {
+      throw new HttpsError('failed-precondition', 'La solicitud no existe o ya fue resuelta.');
+    }
+    const planRequest = requestSnap.data();
+    if (decision === 'approve') {
+      const currentPlan = gymSnap.data().plan || 'free';
+      if (!(planRequest.requestedPlan in planRank) ||
+          planRank[planRequest.requestedPlan] <= planRank[currentPlan]) {
+        throw new HttpsError('failed-precondition', 'El plan del gimnasio cambió y esta solicitud quedó desactualizada.');
+      }
+    }
+    const nextStatus = decision === 'approve' ? 'approved_waiting_payment' : 'rejected';
+    const note = typeof request.data?.note === 'string' ? request.data.note.trim().slice(0, 500) : '';
+    tx.update(requestRef, {
+      status: nextStatus,
+      reviewedBy: uid,
+      reviewedAt: FieldValue.serverTimestamp(),
+      reviewNote: note || null,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    tx.create(auditRef, {
+      type: decision === 'approve' ? 'plan-request-approved' : 'plan-request-rejected',
+      requestId,
+      requestedPlan: planRequest.requestedPlan,
+      actorUid: uid,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    return { success: true, status: nextStatus };
+  });
+});
