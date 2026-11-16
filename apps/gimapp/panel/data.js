@@ -35,10 +35,23 @@ export async function getPendingRequests(gymId) {
     .sort((a, b) => (a.createdAt?.toMillis?.() || 0) - (b.createdAt?.toMillis?.() || 0));
 }
 
-export async function getClients(gymId) {
+export async function getClients(gymId, assignedTurnIds = null) {
   const { db } = await getFirebaseServices();
-  const snapshot = await getDocs(query(collection(db, 'gyms', gymId, 'clients'), orderBy('lastName', 'asc'), limit(500)));
-  return snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+  const clientsRef = collection(db, 'gyms', gymId, 'clients');
+  if (!Array.isArray(assignedTurnIds)) {
+    const snapshot = await getDocs(query(clientsRef, orderBy('lastName', 'asc'), limit(500)));
+    return snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+  }
+  const ids = [...new Set(assignedTurnIds.filter(id => typeof id === 'string' && id))];
+  if (!ids.length) return [];
+  const chunks = [];
+  for (let index = 0; index < ids.length; index += 30) chunks.push(ids.slice(index, index + 30));
+  const snapshots = await Promise.all(chunks.map(group =>
+    getDocs(query(clientsRef, where('assignedTurnIds', 'array-contains-any', group), limit(500)))
+  ));
+  const unique = new Map();
+  snapshots.forEach(snapshot => snapshot.docs.forEach(item => unique.set(item.id, { id: item.id, ...item.data() })));
+  return [...unique.values()].sort((a, b) => String(a.lastName || '').localeCompare(String(b.lastName || ''), 'es'));
 }
 
 export async function getCashEntries(gymId) {
