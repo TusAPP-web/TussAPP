@@ -140,11 +140,14 @@ exports.getGymWorkspace = onCall(options, async request => {
         const data = item.data();
         unique.set(item.id, {
           id: item.id,
+          clientUid: data.clientUid || item.id,
           displayId: data.displayId || item.id,
           firstName: data.firstName || '',
           lastName: data.lastName || '',
           status: data.status || '',
-          assignedTurnIds: Array.isArray(data.assignedTurnIds) ? data.assignedTurnIds : [],
+          assignedTurnIds: Array.isArray(data.assignedTurnIds)
+            ? data.assignedTurnIds.filter(turnId => assigned.includes(turnId))
+            : [],
         });
       });
     }
