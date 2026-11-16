@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { initializeTestEnvironment, assertSucceeds, assertFails } = require('@firebase/rules-unit-testing');
-const { doc, getDoc, setDoc, updateDoc, Timestamp } = require('firebase/firestore');
+const { collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where, Timestamp } = require('firebase/firestore');
 
 (async () => {
   const env = await initializeTestEnvironment({
@@ -51,8 +51,16 @@ const { doc, getDoc, setDoc, updateDoc, Timestamp } = require('firebase/firestor
         permissions: { viewClients: true, takeAttendance: true },
         assignedTurnIds: ['turn-allowed'],
       });
+      await setDoc(doc(db, 'gyms/gym-gold/team/staff-attendance-only'), {
+        uid: 'staff-attendance-only', role: 'staff', active: true,
+        permissions: { takeAttendance: true },
+        assignedTurnIds: ['turn-allowed'],
+      });
       await setDoc(doc(db, 'gyms/gym-gold/clients/client-gold'), {
         clientUid: 'client-gold', firstName: 'Cliente', assignedTurnIds: ['turn-allowed'],
+      });
+      await setDoc(doc(db, 'gyms/gym-gold/clients/client-other-turn'), {
+        clientUid: 'client-other-turn', firstName: 'Otro turno', assignedTurnIds: ['turn-other'],
       });
 
       await setDoc(doc(db, 'gyms/gym-pro'), {
@@ -93,6 +101,7 @@ const { doc, getDoc, setDoc, updateDoc, Timestamp } = require('firebase/firestor
     const basicStaffDb = env.authenticatedContext('staff-basic').firestore();
     const expiredOwnerDb = env.authenticatedContext('owner-expired').firestore();
     const goldStaffDb = env.authenticatedContext('staff-gold').firestore();
+    const attendanceOnlyDb = env.authenticatedContext('staff-attendance-only').firestore();
 
     await assertSucceeds(getDoc(doc(clientDb, 'gyms/gym-rules/clients/client-a')));
     await assertFails(getDoc(doc(otherDb, 'gyms/gym-rules/clients/client-a')));
@@ -119,6 +128,13 @@ const { doc, getDoc, setDoc, updateDoc, Timestamp } = require('firebase/firestor
     await assertSucceeds(getDoc(doc(ownerDb, 'gyms/gym-rules')));
     await assertFails(getDoc(doc(basicStaffDb, 'gyms/gym-staff/clients/client-a')));
     await assertSucceeds(getDoc(doc(goldStaffDb, 'gyms/gym-gold/clients/client-gold')));
+    await assertSucceeds(getDoc(doc(attendanceOnlyDb, 'gyms/gym-gold/clients/client-gold')));
+    await assertFails(getDoc(doc(attendanceOnlyDb, 'gyms/gym-gold/clients/client-other-turn')));
+    const assignedClientQuery = await assertSucceeds(getDocs(query(
+      collection(attendanceOnlyDb, 'gyms/gym-gold/clients'),
+      where('assignedTurnIds', 'array-contains-any', ['turn-allowed']),
+    )));
+    assert.equal(assignedClientQuery.size, 1);
     await assertSucceeds(setDoc(doc(goldStaffDb, 'gyms/gym-gold/attendance/allowed'), {
       trainerUid: 'staff-gold', clientUid: 'client-gold', turnId: 'turn-allowed',
       date: '2026-11-15', status: 'present',
