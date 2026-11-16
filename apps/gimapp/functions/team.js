@@ -100,9 +100,9 @@ exports.createTeamInvitation = onCall(options, async request => {
     const turnIds = validateTurns(gym, request.data?.assignedTurnIds || []);
     const [seats, duplicate] = await Promise.all([
       countReservedSeats(tx, gymRef),
-      tx.get(gymRef.collection('teamInvitations').where('email', '==', email).where('status', '==', 'pending')),
+      tx.get(gymRef.collection('teamInvitations').where('email', '==', email)),
     ]);
-    if (duplicate.docs.some(item => item.data().expiresAt?.toMillis?.() > Date.now())) {
+    if (duplicate.docs.some(item => item.data().status === 'pending' && item.data().expiresAt?.toMillis?.() > Date.now())) {
       throw new HttpsError('already-exists', 'Ya hay una invitación pendiente para ese correo.');
     }
     if (gym.plan === 'pro' && seats >= 3) {
