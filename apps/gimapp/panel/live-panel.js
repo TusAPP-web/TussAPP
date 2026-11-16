@@ -13,11 +13,15 @@ const money = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS
 const dateKey = date => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 const initials = name => name.split(' ').filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase();
 const person = name => `<span class="person"><span class="avatar">${esc(initials(name))}</span>${esc(name)}</span>`;
-function hasPaidPlan(gym) {
+function effectivePlan(gym) {
   const expiry = gym?.planExpiresAt?.toDate
     ? gym.planExpiresAt.toDate().getTime()
     : gym?.planExpiresAt ? new Date(gym.planExpiresAt).getTime() : null;
-  return ['pro', 'gold'].includes(gym?.plan) && (expiry === null || expiry > Date.now());
+  if (['pro', 'gold'].includes(gym?.plan) && expiry !== null && expiry <= Date.now()) return 'free';
+  return gym?.plan || 'free';
+}
+function hasPaidPlan(gym) {
+  return ['pro', 'gold'].includes(effectivePlan(gym));
 }
 
 function toast(message) { const el = document.querySelector('#toast'); el.textContent = message; el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 2800); }
@@ -35,7 +39,7 @@ async function load() {
   ]);
   state = { gym, catalog, requests, clients, cash, planRequests };
   document.querySelectorAll('[data-gym-name]').forEach(el => { el.textContent = gym.name; });
-  document.querySelectorAll('[data-plan-name]').forEach(el => { el.textContent = gym.plan === 'free' ? 'Gratis' : gym.plan; });
+  document.querySelectorAll('[data-plan-name]').forEach(el => { el.textContent = effectivePlan(gym) === 'free' ? 'Gratis' : effectivePlan(gym).toUpperCase(); });
   const cashNav = nav.querySelector('[data-page="caja"]');
   if (cashNav) cashNav.hidden = !hasPaidPlan(gym);
   const badge = document.querySelector('#request-badge');
@@ -85,7 +89,7 @@ function settingsPage() {
     </section>`;
 }
 function plansPage() {
-  const currentPlan = state.gym.plan || 'free';
+  const currentPlan = effectivePlan(state.gym);
   const currentLabel = ({ free: 'Gratis', pro: 'Pro', gold: 'Gold' })[currentPlan] || currentPlan;
   const latest = state.planRequests[0];
   const lockedRequest = latest && ['pending', 'approved_waiting_payment'].includes(latest.status);
