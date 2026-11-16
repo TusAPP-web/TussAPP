@@ -349,7 +349,7 @@ exports.listTeam = onCall(options, async request => {
   return db.runTransaction(async tx => {
     const { gym } = await ownerContext(tx, gymId, request.auth.uid);
     const [members, invitations] = await Promise.all([
-      tx.get(gymRef.collection('team').orderBy('createdAt', 'asc')),
+      tx.get(gymRef.collection('team')),
       tx.get(gymRef.collection('teamInvitations').where('status', '==', 'pending')),
     ]);
     return {
@@ -363,7 +363,7 @@ exports.listTeam = onCall(options, async request => {
           assignedTurnIds: Array.isArray(data.assignedTurnIds) ? data.assignedTurnIds : [],
           createdAt: data.createdAt?.toDate?.().toISOString() || null,
         };
-      }),
+      }).sort((a, b) => String(a.createdAt || '').localeCompare(String(b.createdAt || ''))),
       invitations: invitations.docs.filter(item => item.data().expiresAt?.toMillis?.() > Date.now())
         .map(item => ({
           id: item.id, email: item.data().email || '',
