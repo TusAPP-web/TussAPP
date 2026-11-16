@@ -57,7 +57,7 @@ async function countReservedSeats(tx, gymRef) {
 }
 function validatePlanPermissions(gym, permissions) {
   if (gym.plan === 'pro') {
-    const proKeys = ['viewSchedule', 'viewClients', 'viewRequests', 'takeAttendance', 'manageCash', 'viewReports'];
+    const proKeys = ['viewSchedule', 'viewClients', 'viewRequests', 'takeAttendance', 'manageCash'];
     if (Object.keys(permissions).some(key => permissions[key] && !proKeys.includes(key))) {
       throw new HttpsError('failed-precondition', 'Los permisos avanzados están disponibles en Gold.');
     }
