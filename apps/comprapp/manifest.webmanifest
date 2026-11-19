@@ -1,0 +1,11 @@
+{
+  "name": "ComprAPP",
+  "short_name": "ComprAPP",
+  "lang": "es-AR",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f7f5",
+  "theme_color": "#176b55",
+  "description": "Organizá tus compras y compará precios."
+}
