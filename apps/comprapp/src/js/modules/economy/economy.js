@@ -1,0 +1,1 @@
+export const economyModule={view:"./src/js/modules/economy/economy.html",init({navigate}){document.querySelector("[data-back]")?.addEventListener("click",()=>navigate("home"));}};

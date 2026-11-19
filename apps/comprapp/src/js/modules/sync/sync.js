@@ -1,0 +1,1 @@
+export const syncModule={view:"./src/js/modules/sync/sync.html",init({navigate}){document.querySelector("[data-back]")?.addEventListener("click",()=>navigate("home"));}};

@@ -1,0 +1,1 @@
+export const budgetModule={view:"./src/js/modules/budget/budget.html",init({navigate}){document.querySelector("[data-back]")?.addEventListener("click",()=>navigate("home"));}};

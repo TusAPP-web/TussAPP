@@ -1,12 +1,1 @@
-export function initHome() {
-  document.querySelectorAll("[data-view]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const labels = {
-        zone: "Todos los productos de tu zona",
-        merchants: "Productos de tus comercios",
-        favorites: "Tus productos favoritos"
-      };
-      window.alert(labels[button.dataset.view] + "\n\nEsta sección todavía no está conectada.");
-    });
-  });
-}
+export const homeModule={view:"./src/js/modules/home/home.html",init({navigate}){document.querySelectorAll("[data-view]").forEach((button)=>button.addEventListener("click",()=>navigate(button.dataset.view)));document.querySelector("[data-open-list]")?.addEventListener("click",()=>navigate("shopping-list"));}};

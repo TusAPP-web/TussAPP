@@ -1,0 +1,1 @@
+export const favoritesModule={view:"./src/js/modules/favorites/favorites.html",init({navigate}){document.querySelector("[data-back]")?.addEventListener("click",()=>navigate("home"));}};

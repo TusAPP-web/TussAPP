@@ -1,0 +1,1 @@
+export const comparisonModule={view:"./src/js/modules/comparison/comparison.html",init({navigate}){document.querySelector("[data-back]")?.addEventListener("click",()=>navigate("home"));}};

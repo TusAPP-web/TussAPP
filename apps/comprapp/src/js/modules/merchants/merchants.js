@@ -1,0 +1,1 @@
+export const merchantsModule={view:"./src/js/modules/merchants/merchants.html",init({navigate}){document.querySelector("[data-back]")?.addEventListener("click",()=>navigate("home"));}};

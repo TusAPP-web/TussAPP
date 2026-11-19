@@ -1,0 +1,1 @@
+export const shoppingListModule={view:"./src/js/modules/shopping-list/shopping-list.html",init({navigate}){document.querySelector("[data-back]")?.addEventListener("click",()=>navigate("home"));}};

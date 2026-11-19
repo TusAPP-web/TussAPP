@@ -1,0 +1,1 @@
+export const catalogModule={view:"./src/js/modules/catalog/catalog.html",init({navigate}){document.querySelector("[data-back]")?.addEventListener("click",()=>navigate("home"));}};
