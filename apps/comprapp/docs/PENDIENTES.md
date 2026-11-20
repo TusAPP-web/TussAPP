@@ -33,3 +33,16 @@
 - Definir idempotencia y conflictos de sincronización offline.
 - Validar consultas de uso y crear índices solo a partir de consultas aprobadas.
 - Mantener Firebase sin crear hasta cerrar y aprobar estas decisiones.
+
+
+### Roles y permisos PRO — propuesta elaborada, pendiente de decisión
+
+Se agregó a `MODELO_DATOS.md` una matriz preliminar para owner, admin, member y viewer; permisos económicos independientes; separación entre cuenta consumidora y comercio; y reglas de seguridad mínimas. No está aprobada ni implementada.
+
+Pendiente de resolver:
+- Confirmar los cuatro roles y sus límites.
+- Definir si las listas son compartidas o pueden ser personales.
+- Confirmar autorización económica individual.
+- Cerrar facultades de invitación/deshabilitación del admin.
+- Definir cierre de cuenta y recuperación.
+- Definir por separado los roles de personal comercial.
