@@ -3,7 +3,7 @@
 1. Probar IndexedDB en navegador de escritorio y móvil; lectura, escritura, borrado y migración.
 2. Probar la lista de compras local: agregar, editar nombre y cantidad, marcar como comprado, eliminar, recargar y volver a abrir el navegador.
 3. Integrar favoritos con almacenamiento local y referencias al catálogo; la cuenta en nube será la persistencia principal cuando Firebase esté configurado.
-4. Revisar y aprobar el borrador actualizado docs/MODELO_DATOS.md antes de crear recursos.
+4. [EN REVISIÓN] Completar revisión detallada de relaciones, permisos, consultas e integridad del borrador docs/MODELO_DATOS.md antes de aprobarlo y crear recursos.
 5. Crear un proyecto Firebase exclusivo de ComprAPP; todavía no existe.
 6. Definir autenticación, identidad y permisos a partir del modelo aprobado, respetando FREE de un usuario y PRO multiusuario.
 8. Definir política de conflictos offline por entidad antes de implementar la cola de sincronización.
