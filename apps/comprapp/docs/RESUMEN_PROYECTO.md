@@ -262,7 +262,7 @@ El borrador técnico está en `docs/MODELO_DATOS.md`. Propone, entre otras, esta
 - `incomeSources`, `expenses` y `budgets`: estructura preliminar para economía; alcance de reglas pendiente.
 - `merchantLinksPublic`: propuesta de resolución de destinos QR/NFC.
 
-Se realizó una primera revisión de cobertura contra las decisiones funcionales y se agregaron entidades faltantes para ingresos múltiples, gastos/presupuestos, auditoría de importaciones y enlaces QR/NFC. El documento sigue siendo un borrador, no una base creada; todavía requiere revisión de reglas y decisiones abiertas antes de provisionar Firebase.
+Se realizó una primera revisión de cobertura contra las decisiones funcionales y se agregaron entidades faltantes para ingresos múltiples, gastos/presupuestos, auditoría de importaciones y enlaces QR/NFC. En una segunda revisión se documentaron propuestas de relaciones e integridad referencial, permisos, operaciones atómicas/concurrencia y consultas/limitaciones de Firestore. El documento sigue siendo un borrador, no una base creada; las decisiones técnicas abiertas deben resolverse y el modelo debe aprobarse antes de provisionar Firebase.
 
 ## 13. Seguridad y privacidad
 
@@ -362,6 +362,6 @@ Se realizó una primera revisión de cobertura contra las decisiones funcionales
 
 **No crear todavía funcionalidades nuevas sobre la lista provisional.**
 
-Se completó una primera revisión de cobertura del borrador `MODELO_DATOS.md` contra las decisiones funcionales documentadas. El siguiente paso es una segunda revisión detallada de relaciones, permisos, consultas e integridad (sin crear Firebase todavía). Después de cerrar el modelo y sus decisiones pendientes, preparar el proyecto Firebase exclusivo de ComprAPP, sin tocar otras aplicaciones, y comenzar con Authentication, Firestore y reglas seguras probadas en Emulator.
+Se completó una primera revisión de cobertura y una segunda revisión detallada de relaciones, permisos, consultas e integridad del borrador `MODELO_DATOS.md`. Las propuestas quedaron documentadas, pero el modelo todavía no está aprobado: siguen pendientes las decisiones enumeradas en las secciones 13 y 20 de ese documento y en `PENDIENTES.md`. No crear Firebase todavía. El próximo paso es resolver esas decisiones y aprobar el diseño; recién entonces preparar el proyecto Firebase exclusivo de ComprAPP, sin tocar otras aplicaciones, y comenzar con Authentication, Firestore y reglas seguras probadas en Emulator.
 
 El diseño visual definitivo de la lista debe retomarse cuando ya existan catálogo, favoritos, comercios y precios, porque la experiencia prevista depende de esos datos y relaciones.
