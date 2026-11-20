@@ -5,8 +5,9 @@
 - [HECHO Y VERIFICADO EN REPOSITORIO] Navegación por módulos con vistas HTML independientes.
 - [HECHO Y VERIFICADO EN REPOSITORIO] CSS separado por módulo; styles.css solo importa hojas.
 - [HECHO Y VERIFICADO EN REPOSITORIO] Módulo inicial IndexedDB con almacenes versionados y API básica de lectura/escritura.
-- [PENDIENTE] Integrar almacenamiento con listas y favoritos; cola de sincronización real; autenticación y backend.
+- [HECHO EN REPOSITORIO, PENDIENTE DE PRUEBA EN NAVEGADOR] Lista local con alta, edición, marcado como comprado, eliminación y resumen en inicio.
 - [PENDIENTE] Pruebas funcionales en navegador y verificación de publicación GitHub Pages.
+- [PENDIENTE] Favoritos conectados al almacenamiento, cola de sincronización real, autenticación y backend.
 
 ## Cliente
 index.html contiene el shell. app.js registra módulos. core/router.js carga vistas e inicializa el módulo activo. Cada módulo tiene HTML, JS y CSS propios. No colocar lógica de negocio en app.js ni reglas de todas las pantallas en styles.css.
@@ -15,7 +16,7 @@ index.html contiene el shell. app.js registra módulos. core/router.js carga vis
 home, catalog, merchants, favorites, shopping-list, comparison, economy, budget y sync.
 
 ## Persistencia local
-core/storage.js gestiona IndexedDB `comprapp-local`, versión 1. Los almacenes iniciales son preferences, shoppingLists, favorites, catalogCache y syncQueue. La cola existe solo como estructura; aún no tiene proceso de envío ni política de conflictos.
+core/storage.js gestiona IndexedDB `comprapp-local`, versión 1. Los almacenes iniciales son preferences, shoppingLists, favorites, catalogCache y syncQueue. La lista de compras usa una única clave local de lista y no requiere cambios de esquema. La cola existe solo como estructura; aún no tiene proceso de envío ni política de conflictos.
 
 ## Backend previsto
 Firebase Authentication, Firestore, Storage, Cloud Functions y Scheduler. El proyecto Firebase debe confirmarse antes de configurarlo. No reutilizar credenciales de otras apps.
