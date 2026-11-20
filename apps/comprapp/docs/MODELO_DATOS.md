@@ -15,13 +15,13 @@ Este documento define una primera estructura lógica para revisar antes de crear
 6. Los datos que deban sobrevivir sin conexión se mantienen en IndexedDB y se sincronizan con una cola explícita.
 7. No guardar secretos de APIs, pagos ni credenciales de proveedores en el cliente.
 
-## 2. Identidades y espacios de consumo
+## 2. Identidades y cuentas de ComprAPP
 
 ### Firebase Authentication
-Firebase Auth identifica a la persona mediante uid. El perfil funcional se almacena separado de los proveedores de autenticación.
+Firebase Auth identifica a cada persona mediante uid. La identidad de acceso es individual, aunque una cuenta/espacio PRO pueda admitir varios miembros. El perfil funcional se almacena separado de los proveedores de autenticación.
 
 ### users/{uid}
-Perfil mínimo de usuario:
+Perfil mínimo de cada persona:
 - displayName
 - email (si corresponde; preferir el dato de Auth cuando sea suficiente)
 - countryCode
@@ -32,23 +32,24 @@ Perfil mínimo de usuario:
 
 No almacenar contraseñas ni tokens de sesión en Firestore.
 
-### spaces/{spaceId}
-Espacio de compras/economía. Este concepto permite que la modalidad individual y la familiar compartan el mismo modelo:
+### comprappAccounts/{accountId}
+Cuenta propietaria de los datos de ComprAPP. Los datos persistentes pertenecen a esta cuenta en la nube; IndexedDB conserva una copia local para uso offline y sincronización.
 - ownerUid
 - name
-- mode: individual o family
 - countryCode
 - currencyCode
-- planSnapshot (solo lectura del cliente; la fuente autoritativa de plan se valida en backend)
+- planId (la fuente autoritativa del plan se valida en backend)
 - createdAt, updatedAt, status
 
-### spaces/{spaceId}/members/{uid}
+Regla funcional ya definida: FREE admite un único usuario por cuenta. PRO admite múltiples usuarios autorizados en la misma cuenta. No introducir un modo familiar/individual como selector de producto separado sin una decisión previa del usuario.
+
+### comprappAccounts/{accountId}/members/{uid}
 - role: owner, admin, member, viewer
 - status: invited, active, disabled
 - joinedAt
 - permissions (solo si se define una matriz de permisos explícita)
 
-La posibilidad de invitar miembros y el límite por plan quedan sujetos a la decisión FREE/PRO y al alcance familiar.
+El backend debe validar la pertenencia y los límites de usuarios según el plan antes de aceptar invitaciones o cambios de miembros.
 
 ## 3. Catálogo maestro
 
@@ -141,7 +142,7 @@ El cliente consumidor puede leer solo los datos publicados permitidos. No puede 
 
 ## 5. Vínculos del consumidor con comercios
 
-### spaces/{spaceId}/merchantLinks/{linkId}
+### comprappAccounts/{accountId}/merchantLinks/{linkId}
 - merchantId
 - rubricId
 - branchIds[] (si se decide selección de sucursal)
@@ -152,14 +153,14 @@ FREE permite un comercio por rubro; PRO permite hasta tres, según decisión fun
 
 ## 6. Listas y favoritos
 
-### spaces/{spaceId}/shoppingLists/{listId}
+### comprappAccounts/{accountId}/shoppingLists/{listId}
 Cabecera de lista:
 - name
 - status: active, archived
 - createdByUid
 - createdAt, updatedAt
 
-### spaces/{spaceId}/shoppingLists/{listId}/items/{itemId}
+### comprappAccounts/{accountId}/shoppingLists/{listId}/items/{itemId}
 - variantId (opcional mientras se permita artículo manual)
 - displayNameSnapshot (para mostrar la lista aunque el catálogo no esté disponible)
 - quantity
@@ -172,12 +173,15 @@ Cabecera de lista:
 
 La lista no guarda como verdad un precio permanente. Puede mostrar una cotización consultada, identificada con su fecha y comercio, sin confundirla con el precio vigente.
 
-### spaces/{spaceId}/favorites/{variantId}
+### comprappAccounts/{accountId}/favorites/{favoriteId}
 - variantId
+- createdAt
+- targetType (product o variant, para permitir favoritos de producto general o variante específica)
+- targetId
 - createdAt
 - createdByUid
 
-Se guardan referencias a variantes, no duplicados de los productos. Si se decide que favoritos sean por familia de producto en vez de variante, se ajustará antes de implementarlos.
+Se guardan referencias al catálogo, no duplicados de los productos. Esta estructura admite marcar como favorito un producto general o una variante exacta sin duplicar sus datos.
 
 ## 7. Planes y derechos
 
@@ -202,13 +206,13 @@ Las importaciones deben registrar procedencia, fecha de observación y unidad/cu
 ## 9. Seguridad por límites
 
 - users: el usuario solo lee/actualiza su perfil permitido.
-- spaces: solo miembros activos; roles limitan escritura.
+- comprappAccounts: solo miembros activos; FREE admite un usuario y PRO varios; roles limitan escritura.
 - catalog*: lectura pública o autenticada según decisión; escritura solo por moderación/backend.
 - merchants: datos públicos publicados separados de datos administrativos privados.
 - offers: solo miembros autorizados del comercio pueden crear borradores/editar; publicación validada por backend.
 - priceHistory: solo backend escribe; lectura filtrada a precios publicables.
-- merchantLinks: miembros del espacio leen; cambios de límites pasan por Cloud Function.
-- shoppingLists y favorites: miembros del espacio con permiso correspondiente.
+- merchantLinks: miembros de la cuenta leen; cambios de límites pasan por Cloud Function.
+- shoppingLists y favorites: miembros de la cuenta con permiso correspondiente.
 - billingAccounts y priceSourceConfigs: no accesibles directamente desde cliente.
 
 Las reglas concretas de Firestore deben escribirse y probarse con Firebase Emulator antes de datos reales. Este documento no sustituye las reglas.
@@ -226,17 +230,14 @@ La búsqueda textual/geográfica puede requerir un servicio de búsqueda especí
 
 ## 11. Decisiones que siguen abiertas
 
-1. Espacio individual o familiar como experiencia inicial; el modelo soporta ambos.
-2. Favoritos por producto/familia o por variante exacta.
-3. Si una lista pertenece a un usuario o a un espacio compartido.
-4. Roles y permisos exactos para miembros familiares.
-5. Taxonomía de rubros y categorías por país.
-6. Selección de sucursales y alcance de precios por zona.
-7. Política de conflictos offline y sincronización por entidad.
-8. Retención y granularidad del historial de precios.
-9. Fuente maestra y proceso de moderación del catálogo.
-10. Proveedor de búsqueda y geolocalización.
-11. Modelo final de planes, período de prueba y titularidad de suscripción.
+1. Matriz detallada de roles y permisos para usuarios PRO de una misma cuenta.
+2. Taxonomía de rubros y categorías por país.
+3. Selección de sucursales y alcance de precios por zona.
+4. Política de conflictos offline y sincronización por entidad.
+5. Retención y granularidad del historial de precios.
+6. Fuente maestra y proceso de moderación del catálogo.
+7. Proveedor de búsqueda y geolocalización.
+8. Modelo de titularidad de suscripción, duración del período PRO gratuito y pagos por mercado.
 
 ## 12. Orden de implementación después de aprobar el modelo
 
@@ -245,7 +246,7 @@ La búsqueda textual/geográfica puede requerir un servicio de búsqueda especí
 3. Crear estructura Firestore y reglas iniciales deny-by-default.
 4. Configurar Firebase Emulator y pruebas automatizadas de reglas.
 5. Implementar catálogo de prueba y moderación controlada.
-6. Implementar espacios, miembros, listas y favoritos.
+6. Implementar cuentas ComprAPP, miembros PRO, listas y favoritos.
 7. Implementar comercios, ofertas y publicación de precios.
 8. Implementar Functions para operaciones privilegiadas, límites y sincronización.
 9. Conectar módulos PWA de a uno, con pruebas funcionales y offline.
