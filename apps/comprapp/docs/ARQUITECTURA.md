@@ -18,8 +18,11 @@ home, catalog, merchants, favorites, shopping-list, comparison, economy, budget 
 ## Persistencia local
 core/storage.js gestiona IndexedDB `comprapp-local`, versión 1. Los almacenes iniciales son preferences, shoppingLists, favorites, catalogCache y syncQueue. La lista de compras usa una única clave local de lista y no requiere cambios de esquema. La cola existe solo como estructura; aún no tiene proceso de envío ni política de conflictos.
 
+## Modelo de datos
+El borrador de arquitectura de datos está en docs/MODELO_DATOS.md. Define la separación entre usuarios/espacios, catálogo maestro, comercios/ofertas, listas/favoritos y derechos de plan. Es un diseño pendiente de revisión; no hay colecciones Firebase creadas.
+
 ## Backend previsto
-Firebase Authentication, Firestore, Storage, Cloud Functions y Scheduler. El proyecto Firebase debe confirmarse antes de configurarlo. No reutilizar credenciales de otras apps.
+Firebase Authentication, Firestore, Storage, Cloud Functions y Scheduler. No existe todavía un proyecto Firebase exclusivo de ComprAPP. No reutilizar credenciales de otras apps. Crear el proyecto y sus recursos solo después de revisar el modelo y las decisiones pendientes.
 
 ## Offline
 IndexedDB para listas, preferencias, catálogo parcial y cola de sincronización. Service Worker para shell y recursos estáticos. No descargar el catálogo global completo. La política de conflictos se definirá antes de implementar sincronización.
