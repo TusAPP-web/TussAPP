@@ -194,14 +194,82 @@ Se guardan referencias al catálogo, no duplicados de los productos. Esta estruc
 
 No confiar en planSnapshot enviado por el cliente. Cloud Functions verifica permisos PRO, período gratuito, cantidad de vínculos y límites de miembros.
 
-## 8. Fuentes e importaciones
+## 8. Economía personal y presupuestos
+
+La decisión confirmada para FREE es permitir múltiples ingresos dentro de una cuenta. Los siguientes registros se proponen como datos privados de la cuenta; el alcance exacto de saldos, transferencias y reglas presupuestarias todavía debe definirse.
+
+### comprappAccounts/{accountId}/incomeSources/{incomeId}
+- name
+- amount
+- currencyCode
+- frequency (único, semanal, quincenal, mensual u otra periodicidad definida)
+- effectiveFrom, effectiveUntil (opcionales)
+- createdAt, updatedAt
+- status
+
+Permite registrar más de una fuente de ingreso en FREE, sin convertir cada ingreso en una cuenta de usuario separada.
+
+### comprappAccounts/{accountId}/expenses/{expenseId}
+- description
+- amount
+- currencyCode
+- categoryId
+- occurredAt
+- source (manual u otra fuente autorizada)
+- createdAt, updatedAt
+
+La clasificación y el alcance final de gastos quedan pendientes de definición funcional.
+
+### comprappAccounts/{accountId}/budgets/{budgetId}
+- name
+- amountLimit
+- currencyCode
+- period (a definir)
+- categoryIds[] (opcional)
+- startDate, endDate
+- status
+- createdAt, updatedAt
+
+La lógica de alertas, acumulación, presupuestos compartidos y reglas de cálculo no se debe implementar hasta cerrar su alcance.
+
+### Cuentas, saldos y transferencias
+Se había planteado incorporar cuentas/saldos y transferencias internas, pero el alcance exacto no está cerrado. No se debe asumir todavía un modelo contable ni crear entidades de movimientos/transferencias hasta definir si representan efectivo, cuentas bancarias, billeteras u otra cosa.
+
+## 9. Fuentes e importaciones
 
 ### priceSourceConfigs/{sourceId} (solo backend/admin)
 Configuración de adaptadores, alcance geográfico, frecuencia, licencias y estado. Las claves privadas viven en Secret Manager o configuración segura de Functions, nunca en documentos accesibles al cliente.
 
 Las importaciones deben registrar procedencia, fecha de observación y unidad/currency. No tratar una lista importada como precio actual sin validar fecha y cobertura.
 
-## 9. Seguridad por límites
+### priceImportRuns/{runId} (solo backend/admin)
+Registro de cada proceso de importación:
+- sourceId
+- merchantId (si corresponde)
+- startedAt, completedAt
+- status
+- recordsRead, recordsAccepted, recordsRejected
+- errorSummary
+- sourceFileRef (referencia segura al archivo, no credenciales)
+
+Permite auditar de dónde y cuándo se incorporaron precios. El detalle de retención y almacenamiento de archivos queda pendiente.
+
+## 10. Enlaces QR y NFC
+
+Se prevé que un QR o etiqueta NFC dirija a un comercio, sucursal o catálogo mediante un enlace web/deep link. No se necesita duplicar el catálogo en el QR/NFC: el identificador o slug debe resolver al destino publicado.
+
+### merchantLinksPublic/{publicLinkId} (solo backend/admin)
+- merchantId
+- branchId (opcional)
+- rubricId (opcional)
+- destinationType
+- destinationId
+- status
+- createdAt
+
+Esta estructura es una propuesta para resolver enlaces públicos. El formato final de URL, redirección a PWA o web y administración de enlaces sigue pendiente. No guardar información privada ni permisos en el identificador público.
+
+## 11. Seguridad por límites
 
 - users: el usuario solo lee/actualiza su perfil permitido.
 - comprappAccounts: solo miembros activos; FREE admite un usuario y PRO varios; roles limitan escritura.
@@ -215,7 +283,7 @@ Las importaciones deben registrar procedencia, fecha de observación y unidad/cu
 
 Las reglas concretas de Firestore deben escribirse y probarse con Firebase Emulator antes de datos reales. Este documento no sustituye las reglas.
 
-## 10. Índices y consultas a diseñar
+## 12. Índices y consultas a diseñar
 
 Índices compuestos previsibles:
 - ofertas por variantId + branchId + status
@@ -223,10 +291,13 @@ Las reglas concretas de Firestore deben escribirse y probarse con Firebase Emula
 - sucursales por zoneId + status
 - listas por status + updatedAt
 - historial por offerId + observedAt
+- gastos por occurredAt + categoryId
+- ingresos por status + effectiveFrom
+- presupuestos por status + startDate
 
 La búsqueda textual/geográfica puede requerir un servicio de búsqueda específico; Firestore no debe asumirse como motor de búsqueda de texto completo.
 
-## 11. Decisiones que siguen abiertas
+## 13. Decisiones que siguen abiertas
 
 1. Matriz detallada de roles y permisos para usuarios PRO de una misma cuenta.
 2. Taxonomía de rubros y categorías por país.
@@ -236,8 +307,12 @@ La búsqueda textual/geográfica puede requerir un servicio de búsqueda especí
 6. Fuente maestra y proceso de moderación del catálogo.
 7. Proveedor de búsqueda y geolocalización.
 8. Modelo de titularidad de suscripción, duración del período PRO gratuito y pagos por mercado.
+9. Alcance y reglas de ingresos, gastos y presupuestos.
+10. Definición funcional de cuentas/saldos/transferencias antes de modelarlas.
+11. Formato de deep links y administración de destinos QR/NFC.
+12. Reglas de listas habituales: duplicación, archivado, plantillas y uso compartido.
 
-## 12. Orden de implementación después de aprobar el modelo
+## 14. Orden de implementación después de aprobar el modelo
 
 1. Crear proyecto Firebase exclusivo de ComprAPP y registrar aplicaciones web.
 2. Activar Authentication y definir proveedores.
@@ -250,3 +325,30 @@ La búsqueda textual/geográfica puede requerir un servicio de búsqueda especí
 9. Conectar módulos PWA de a uno, con pruebas funcionales y offline.
 
 **No crear todavía colecciones ni cargar datos reales hasta aprobar el modelo y configurar el proyecto propio.**
+
+
+## 15. Revisión de cobertura contra decisiones funcionales
+
+Esta revisión incorpora entidades que faltaban en el primer borrador para representar decisiones ya documentadas y separa las funciones cuyo alcance todavía no está cerrado.
+
+| Decisión o capacidad | Cobertura en este modelo | Estado |
+| --- | --- | --- |
+| FREE con un usuario y múltiples ingresos | `comprappAccounts`, `members`, `incomeSources` | Estructura propuesta; reglas por probar |
+| PRO multiusuario | `members` | Estructura propuesta; roles detallados pendientes |
+| Catálogo maestro e IDs estables | `catalogProducts`, `catalogVariants`, `catalogCategories` | Estructura propuesta |
+| Moderación de productos nuevos | `catalogSubmissions` | Flujo operativo pendiente |
+| Catálogos comerciales por rubro | `offers.rubricId` y sucursales | Estructura parcial; taxonomía pendiente |
+| Uno o hasta tres comercios por rubro | `merchantLinks` + validación backend | Requiere Cloud Function y pruebas |
+| Precio actual e historial | `offers`, `priceHistory` | Estructura propuesta |
+| Precios offline identificados como últimos conocidos | caché local y metadatos de observación | Falta definir contrato de sincronización y presentación |
+| Listas y artículos asociados al catálogo | `shoppingLists`, `items.variantId` | Estructura propuesta; integración pendiente |
+| Favoritos de producto o variante | `favorites.targetType/targetId` | Estructura propuesta |
+| Ingresos múltiples FREE | `incomeSources` | Incorporado en esta revisión |
+| Gastos y presupuestos | `expenses`, `budgets` | Estructura preliminar; alcance pendiente |
+| Cuentas, saldos y transferencias | No se crean colecciones todavía | Decisión de alcance pendiente |
+| QR/NFC a comercio, sucursal o catálogo | `merchantLinksPublic` | Propuesta; formato de enlaces pendiente |
+| Comparación exacta/equivalente y precio unitario | variantes, grupos de comparación y ofertas | Requiere lógica de comparación; no es una colección independiente |
+| Sugerencias inteligentes PRO | Historial/listas como datos de entrada | Algoritmo y reglas pendientes; requiere confirmación del usuario |
+| Pagos y titularidad PRO | `billingAccounts` | Modelo de alto nivel; proveedor y titularidad pendientes |
+
+La tabla no declara implementadas estas funciones. Indica únicamente si el diseño de datos contempla su representación.
