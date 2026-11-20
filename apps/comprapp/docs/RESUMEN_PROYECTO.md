@@ -258,9 +258,11 @@ El borrador técnico está en `docs/MODELO_DATOS.md`. Propone, entre otras, esta
 - `shoppingLists` e `items`: listas y artículos.
 - `favorites`: referencias a producto general o variante.
 - `billingAccounts`: plan y período, solo backend.
-- `priceSourceConfigs`: configuración de fuentes, solo backend/administración.
+- `priceSourceConfigs` y `priceImportRuns`: fuentes e importaciones, solo backend/administración.
+- `incomeSources`, `expenses` y `budgets`: estructura preliminar para economía; alcance de reglas pendiente.
+- `merchantLinksPublic`: propuesta de resolución de destinos QR/NFC.
 
-Es un borrador, no una base creada. Debe revisarse para asegurar que refleja todos los flujos funcionales antes de provisionar Firebase.
+Se realizó una primera revisión de cobertura contra las decisiones funcionales y se agregaron entidades faltantes para ingresos múltiples, gastos/presupuestos, auditoría de importaciones y enlaces QR/NFC. El documento sigue siendo un borrador, no una base creada; todavía requiere revisión de reglas y decisiones abiertas antes de provisionar Firebase.
 
 ## 13. Seguridad y privacidad
 
@@ -360,6 +362,6 @@ Es un borrador, no una base creada. Debe revisarse para asegurar que refleja tod
 
 **No crear todavía funcionalidades nuevas sobre la lista provisional.**
 
-El siguiente paso recomendado es hacer una revisión técnica y funcional del borrador `MODELO_DATOS.md` contra este resumen y las decisiones históricas del proyecto. Corregir inconsistencias y campos faltantes. Luego preparar el proyecto Firebase exclusivo de ComprAPP, sin tocar otras aplicaciones, y comenzar con Authentication, Firestore y reglas seguras probadas en Emulator.
+Se completó una primera revisión de cobertura del borrador `MODELO_DATOS.md` contra las decisiones funcionales documentadas. El siguiente paso es una segunda revisión detallada de relaciones, permisos, consultas e integridad (sin crear Firebase todavía). Después de cerrar el modelo y sus decisiones pendientes, preparar el proyecto Firebase exclusivo de ComprAPP, sin tocar otras aplicaciones, y comenzar con Authentication, Firestore y reglas seguras probadas en Emulator.
 
 El diseño visual definitivo de la lista debe retomarse cuando ya existan catálogo, favoritos, comercios y precios, porque la experiencia prevista depende de esos datos y relaciones.
