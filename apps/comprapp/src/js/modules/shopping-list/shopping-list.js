@@ -20,7 +20,7 @@ function renderItems(container, items) {
   }
 
   container.innerHTML = items.map((item) => `
-    <form class="shopping-row${item.purchased ? " is-purchased" : ""}" data-item-id="${escapeHTML(item.id)}" data-edit-form>
+    <div class="shopping-row${item.purchased ? " is-purchased" : ""}" data-item-id="${escapeHTML(item.id)}">
       <label class="shopping-check">
         <input type="checkbox" data-action="purchased" ${item.purchased ? "checked" : ""} aria-label="Marcar ${escapeHTML(item.name)} como comprado">
       </label>
@@ -34,19 +34,17 @@ function renderItems(container, items) {
       </label>
       <span class="shopping-price-placeholder" aria-label="Precio aún no disponible">—</span>
       <div class="shopping-row-actions">
-        <button class="shopping-save-button" type="submit" aria-label="Guardar cambios" title="Guardar cambios">✓</button>
+        <button class="shopping-save-button" type="button" data-action="save" aria-label="Guardar cambios" title="Guardar cambios">✓</button>
         <button class="shopping-delete-button" type="button" data-action="delete" aria-label="Eliminar ${escapeHTML(item.name)}" title="Eliminar">×</button>
       </div>
-    </form>
+    </div>
   `).join("");
 }
 
-function updateSummary(summary, countLabel, items) {
+function updateSummary(summary, items) {
   const pending = items.filter((item) => !item.purchased).length;
   const purchased = items.length - pending;
-  const label = `${items.length} ${items.length === 1 ? "artículo" : "artículos"} · ${pending} pendientes · ${purchased} comprados`;
-  summary.textContent = label;
-  countLabel.textContent = label;
+  summary.textContent = `${items.length} ${items.length === 1 ? "artículo" : "artículos"} · ${pending} pendientes · ${purchased} comprados`;
 }
 
 export const shoppingListModule = {
@@ -64,6 +62,7 @@ export const shoppingListModule = {
       saving = true;
       message.textContent = "Guardando…";
       message.dataset.state = "saving";
+      itemsContainer.querySelectorAll("button, input").forEach((control) => { control.disabled = true; });
       try {
         await saveRecord("shoppingLists", {
           id: LIST_ID,
@@ -72,13 +71,14 @@ export const shoppingListModule = {
         });
         items = nextItems;
         renderItems(itemsContainer, items);
-        updateSummary(summary, summary, items);
+        updateSummary(summary, items);
         message.textContent = successMessage;
         message.dataset.state = "success";
         return true;
       } catch (error) {
         message.textContent = error.message || "No se pudo guardar. Probá nuevamente.";
         message.dataset.state = "error";
+        itemsContainer.querySelectorAll("button, input").forEach((control) => { control.disabled = false; });
         return false;
       } finally {
         saving = false;
@@ -90,7 +90,7 @@ export const shoppingListModule = {
         const stored = await getRecord("shoppingLists", LIST_ID);
         items = Array.isArray(stored?.items) ? stored.items : [];
         renderItems(itemsContainer, items);
-        updateSummary(summary, summary, items);
+        updateSummary(summary, items);
       } catch (error) {
         itemsContainer.innerHTML = '<p class="shopping-error">No se pudo abrir el almacenamiento local. Revisá la configuración del navegador.</p>';
         message.textContent = error.message || "Error al cargar la lista.";
@@ -123,43 +123,44 @@ export const shoppingListModule = {
       }
     });
 
-    itemsContainer.addEventListener("submit", async (event) => {
-      const editForm = event.target.closest("[data-edit-form]");
-      if (!editForm) return;
-      event.preventDefault();
-      const id = editForm.dataset.itemId;
-      const data = new FormData(editForm);
-      const name = String(data.get("name") || "").trim();
-      const quantity = normalizeQuantity(data.get("quantity"));
-      if (!name || name.length > 100 || quantity === null) {
-        message.textContent = "Revisá el nombre y la cantidad.";
-        message.dataset.state = "error";
+    itemsContainer.addEventListener("click", async (event) => {
+      const button = event.target.closest("[data-action]");
+      if (!button || saving) return;
+      const row = button.closest("[data-item-id]");
+      if (!row) return;
+      const id = row.dataset.itemId;
+
+      if (button.dataset.action === "save") {
+        const name = String(row.querySelector('[name="name"]').value || "").trim();
+        const quantity = normalizeQuantity(row.querySelector('[name="quantity"]').value);
+        if (!name || name.length > 100 || quantity === null) {
+          message.textContent = "Revisá el nombre y la cantidad. La cantidad debe ser mayor que cero.";
+          message.dataset.state = "error";
+          return;
+        }
+        const nextItems = items.map((item) => item.id === id
+          ? { ...item, name, quantity, updatedAt: new Date().toISOString() }
+          : item);
+        await persist(nextItems, "✓ Cambios guardados correctamente.");
         return;
       }
-      const nextItems = items.map((item) => item.id === id
-        ? { ...item, name, quantity, updatedAt: new Date().toISOString() }
-        : item);
-      await persist(nextItems, "✓ Cambios guardados correctamente.");
+
+      if (button.dataset.action === "delete") {
+        const item = items.find((entry) => entry.id === id);
+        if (!item || !window.confirm(`¿Eliminar "${item.name}" de la lista?`)) return;
+        const nextItems = items.filter((entry) => entry.id !== id);
+        await persist(nextItems, "Artículo eliminado.");
+      }
     });
 
     itemsContainer.addEventListener("change", async (event) => {
-      if (!event.target.matches('[data-action="purchased"]')) return;
+      if (!event.target.matches('[data-action="purchased"]') || saving) return;
       const row = event.target.closest("[data-item-id]");
       const id = row.dataset.itemId;
       const nextItems = items.map((item) => item.id === id
         ? { ...item, purchased: event.target.checked, updatedAt: new Date().toISOString() }
         : item);
       await persist(nextItems, event.target.checked ? "Artículo marcado como comprado." : "Artículo devuelto a pendientes.");
-    });
-
-    itemsContainer.addEventListener("click", async (event) => {
-      const button = event.target.closest('[data-action="delete"]');
-      if (!button) return;
-      const row = button.closest("[data-item-id]");
-      const item = items.find((entry) => entry.id === row.dataset.itemId);
-      if (!item || !window.confirm(`¿Eliminar "${item.name}" de la lista?`)) return;
-      const nextItems = items.filter((entry) => entry.id !== item.id);
-      await persist(nextItems, "Artículo eliminado.");
     });
 
     document.querySelector("[data-back]")?.addEventListener("click", () => navigate("home"));
