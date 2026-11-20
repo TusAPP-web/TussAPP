@@ -31,4 +31,12 @@ IndexedDB para listas, preferencias, catálogo parcial y cola de sincronización
 Reglas de acceso denegar-por-defecto. Separación estricta entre datos privados del consumidor y datos del comercio. Validar límites FREE/PRO y reemplazos de vínculos en backend. Las operaciones de reemplazo deben ser atómicas.
 
 ## Publicación
+### Vista previa Firebase Hosting
+
+- Se autoriza preparar una publicación estática de vista previa para revisar la interfaz actual.
+- Esta publicación no configura Firebase Authentication, Firestore, Storage ni Cloud Functions.
+- La configuración de Hosting debe quedar dentro de `apps/comprapp/`; no modificar la configuración raíz de TusAPP ni de otras aplicaciones.
+- Excluir documentación interna del directorio público de Hosting.
+- El despliegue real requiere un proyecto Firebase exclusivo de ComprAPP y autenticación autorizada de Firebase CLI.
+
 La aplicación vive en apps/comprapp/. No modificar archivos raíz de TusAPP ni carpetas de otras aplicaciones.
