@@ -1,26 +1,30 @@
 <button class="back-button" type="button" data-back>← Inicio</button>
 <section class="shopping-list-page">
-  <p class="eyebrow">ORGANIZÁ TUS COMPRAS</p>
-  <h1>Lista de compras</h1>
-  <p class="intro">Agregá artículos y cantidades. Esta lista se guarda en este dispositivo.</p>
+  <div class="shopping-page-heading">
+    <div>
+      <p class="eyebrow">ORGANIZÁ TUS COMPRAS</p>
+      <h1>Lista de compras</h1>
+      <p class="intro">Una lista clara y compacta para usar mientras comprás.</p>
+    </div>
+    <div class="shopping-summary" data-list-summary>0 artículos</div>
+  </div>
 
   <form class="shopping-add-form" data-add-form novalidate>
-    <label for="shopping-item-name">Artículo</label>
-    <input id="shopping-item-name" name="name" type="text" maxlength="100" placeholder="Ej.: leche" required autocomplete="off">
-    <div class="shopping-quantity-field">
-      <label for="shopping-item-quantity">Cantidad</label>
-      <input id="shopping-item-quantity" name="quantity" type="number" min="0.01" step="any" value="1" required inputmode="decimal">
-    </div>
-    <button class="primary-button" type="submit">Agregar a la lista</button>
-    <p class="shopping-form-message" data-form-message role="status" aria-live="polite"></p>
+    <label class="sr-only" for="shopping-item-name">Artículo</label>
+    <input id="shopping-item-name" name="name" type="text" maxlength="100" placeholder="Agregar un artículo…" required autocomplete="off">
+    <label class="sr-only" for="shopping-item-quantity">Cantidad</label>
+    <input id="shopping-item-quantity" name="quantity" type="number" min="0.01" step="any" value="1" required inputmode="decimal" aria-label="Cantidad">
+    <button class="primary-button" type="submit">＋ Agregar</button>
   </form>
+  <p class="shopping-form-message" data-form-message role="status" aria-live="polite"></p>
 
-  <div class="shopping-list-heading">
-    <h2>Artículos</h2>
-    <span data-list-count>0 artículos</span>
+  <div class="shopping-table-wrap">
+    <div class="shopping-table-head" aria-hidden="true">
+      <span></span><span>Artículo</span><span>Cant.</span><span>Precio</span><span></span>
+    </div>
+    <div class="shopping-items" data-items aria-live="polite">
+      <p class="shopping-loading">Cargando lista…</p>
+    </div>
   </div>
-  <div class="shopping-items" data-items aria-live="polite">
-    <p class="shopping-loading">Cargando lista…</p>
-  </div>
-  <p class="shopping-storage-note">Por ahora son artículos manuales: todavía no están vinculados al catálogo maestro ni a comercios. No se guardan en la nube.</p>
+  <p class="shopping-storage-note">Lista guardada en este dispositivo. Los precios se mostrarán cuando estén disponibles en los comercios.</p>
 </section>
