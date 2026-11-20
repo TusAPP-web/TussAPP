@@ -40,7 +40,7 @@ Se decidió lanzar inicialmente con funciones PRO habilitadas gratuitamente dura
 - Los límites FREE/PRO deben validarse en backend, no confiar en valores enviados por la aplicación.
 - La identidad de cada persona se gestiona mediante autenticación individual; la cuenta ComprAPP es propietaria de los datos.
 - FREE admite un usuario por cuenta y PRO admite varios miembros autorizados.
-- La matriz exacta de roles y permisos de los miembros PRO todavía debe definirse.
+- La matriz exacta de roles y permisos de los miembros PRO todavía debe definirse. Se documentó una propuesta preliminar owner/admin/member/viewer, con permisos económicos separados y roles comerciales independientes; está pendiente de aprobación.
 
 ## 3. Catálogo maestro de productos
 
@@ -362,6 +362,6 @@ Se realizó una primera revisión de cobertura contra las decisiones funcionales
 
 **No crear todavía funcionalidades nuevas sobre la lista provisional.**
 
-Se completó una primera revisión de cobertura y una segunda revisión detallada de relaciones, permisos, consultas e integridad del borrador `MODELO_DATOS.md`. Las propuestas quedaron documentadas, pero el modelo todavía no está aprobado: siguen pendientes las decisiones enumeradas en las secciones 13 y 20 de ese documento y en `PENDIENTES.md`. No crear Firebase todavía. El próximo paso es resolver esas decisiones y aprobar el diseño; recién entonces preparar el proyecto Firebase exclusivo de ComprAPP, sin tocar otras aplicaciones, y comenzar con Authentication, Firestore y reglas seguras probadas en Emulator.
+Se completó una primera revisión de cobertura y una segunda revisión detallada de relaciones, permisos, consultas e integridad del borrador `MODELO_DATOS.md`. Las propuestas quedaron documentadas, y se agregó una matriz preliminar de roles PRO en la sección 21 de `MODELO_DATOS.md`. El modelo todavía no está aprobado: siguen pendientes las decisiones enumeradas en las secciones 13, 20 y 21 de ese documento y en `PENDIENTES.md`. No crear Firebase todavía. El próximo paso es resolver esas decisiones y aprobar el diseño; recién entonces preparar el proyecto Firebase exclusivo de ComprAPP, sin tocar otras aplicaciones, y comenzar con Authentication, Firestore y reglas seguras probadas en Emulator.
 
 El diseño visual definitivo de la lista debe retomarse cuando ya existan catálogo, favoritos, comercios y precios, porque la experiencia prevista depende de esos datos y relaciones.
