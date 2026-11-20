@@ -494,3 +494,81 @@ Las consultas siguientes son casos de uso previstos, no índices ya creados ni c
 10. Validar consultas reales y generar únicamente los índices compuestos necesarios.
 
 **Estado de esta revisión:** relaciones, permisos, integridad y consultas fueron analizados y documentados como propuestas. El modelo todavía no está aprobado; las decisiones enumeradas deben cerrarse antes de crear Firebase.
+
+
+## 21. Propuesta de roles y permisos PRO — pendiente de aprobación
+
+Esta matriz desarrolla la decisión funcional ya tomada de que PRO admite varios usuarios autorizados dentro de una misma cuenta. Los nombres y permisos siguientes son una propuesta técnica para revisión; **no deben tratarse como decisión confirmada ni implementarse hasta su aprobación**.
+
+### 21.1 Roles propuestos dentro de una cuenta ComprAPP
+
+| Capacidad | owner | admin | member | viewer |
+| --- | --- | --- | --- | --- |
+| Ver datos generales de la cuenta | Sí | Sí | Sí | Sí |
+| Ver y editar listas de compras | Sí | Sí | Sí | Solo lectura |
+| Ver y administrar favoritos | Sí | Sí | Sí | Solo lectura |
+| Ver comercios vinculados | Sí | Sí | Sí | Sí |
+| Agregar/quitar/reemplazar vínculos de comercios | Sí | Sí | Sí, sujeto al plan | No |
+| Ver ingresos, gastos y presupuestos | Sí | Sí | Según permiso económico | Según permiso económico |
+| Crear/editar registros económicos | Sí | Sí | Según permiso económico | No |
+| Invitar miembros | Sí | Sí, limitado | No | No |
+| Cambiar roles de miembros | Sí | Limitado a roles no privilegiados | No | No |
+| Deshabilitar miembros | Sí | Limitado a miembros no privilegiados | No | No |
+| Cambiar propietario | Sí, mediante proceso especial | No | No | No |
+| Gestionar plan, facturación y titularidad de pago | Sí | No | No | No |
+| Eliminar/cerrar la cuenta | Sí, con confirmación reforzada | No | No | No |
+
+**Interpretación propuesta:**
+
+- `owner`: titular responsable de la cuenta; conserva control total y es el único que puede transferir titularidad, gestionar facturación y cerrar la cuenta.
+- `admin`: ayuda a administrar la cuenta y sus miembros, pero no puede transferir propiedad, cambiar facturación ni eliminar la cuenta. No puede asignar el rol owner ni elevarse a sí mismo.
+- `member`: participa en las tareas cotidianas de compras. Sus permisos económicos deben depender de una autorización explícita.
+- `viewer`: consulta la información que la cuenta le permita ver, sin crear, editar ni eliminar registros.
+
+### 21.2 Protección de información económica
+
+No se debe asumir que todo miembro PRO puede ver ingresos, gastos y presupuestos solo por pertenecer a la cuenta. Se propone un permiso independiente, por ejemplo:
+
+- `economy.read`: consultar ingresos, gastos y presupuestos.
+- `economy.write`: crear y modificar registros económicos.
+- `economy.manage`: administrar categorías, presupuestos y configuraciones económicas, si ese alcance se aprueba.
+
+El propietario conserva acceso completo. Para los demás miembros, el propietario asignaría explícitamente estos permisos. Un permiso de escritura no debe implicar automáticamente permiso para administrar miembros, facturación o titularidad.
+
+**Decisión pendiente:** confirmar si la economía se comparte con todos los miembros por defecto o si siempre requiere autorización individual. Recomendación: acceso económico explícito, no automático.
+
+### 21.3 Separación entre roles de cuenta y roles de comercio
+
+Los roles `owner/admin/member/viewer` de una cuenta ComprAPP no otorgan derechos administrativos sobre un comercio vinculado.
+
+La administración del comercio se controla en su propio ámbito, mediante la membresía `merchants/{merchantId}/members/{uid}`. Se propone distinguir:
+
+- propietario del comercio: controla la entidad comercial y puede administrar sus miembros;
+- administrador del comercio: administra sucursales, rubros y ofertas según permisos asignados;
+- operador: carga o actualiza ofertas/precios permitidos, sin controlar titularidad ni facturación;
+- consulta: puede ver información interna autorizada, sin modificarla.
+
+Los nombres son preliminares. Los permisos del personal comercial deben definirse por separado y no heredarse de la cuenta consumidora.
+
+### 21.4 Reglas de seguridad obligatorias para cualquier matriz aprobada
+
+1. La autorización se comprueba en backend/reglas usando el uid autenticado y la membresía vigente; nunca se acepta un rol enviado por el cliente como autoridad.
+2. El cliente no puede crear su propia membresía, cambiar su rol ni otorgarse permisos.
+3. Solo el propietario puede transferir titularidad y gestionar la facturación.
+4. Un administrador no puede asignar roles superiores al suyo ni alterar al propietario.
+5. Revocar o deshabilitar una membresía debe impedir nuevas lecturas/escrituras en nube desde ese momento.
+6. Las operaciones privilegiadas deben validar la membresía y el estado de la cuenta dentro de la operación; no confiar en permisos cacheados indefinidamente.
+7. El acceso económico se evalúa de forma independiente si se aprueba el permiso granular.
+8. La pertenencia a una cuenta no concede acceso a otras cuentas ni a datos privados de comercios.
+
+### 21.5 Decisiones que requieren confirmación
+
+1. Aprobar, cambiar o descartar los cuatro roles propuestos.
+2. Confirmar si los miembros `member` pueden editar listas compartidas o si debe existir una lista personal y otra compartida.
+3. Confirmar si el acceso a economía es siempre explícito por miembro.
+4. Definir si `admin` puede invitar y deshabilitar miembros, y qué roles puede administrar.
+5. Definir si el propietario puede cerrar la cuenta inmediatamente o si se requiere un período de recuperación.
+6. Aprobar por separado los roles del personal de comercios.
+
+**Estado:** propuesta documentada para revisión. No es una decisión funcional confirmada, no modifica el comportamiento actual de ComprAPP y no autoriza la creación de Firebase.
+
