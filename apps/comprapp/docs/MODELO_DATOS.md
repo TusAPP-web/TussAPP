@@ -572,3 +572,11 @@ Los nombres son preliminares. Los permisos del personal comercial deben definirs
 
 **Estado:** propuesta documentada para revisión. No es una decisión funcional confirmada, no modifica el comportamiento actual de ComprAPP y no autoriza la creación de Firebase.
 
+
+
+### 21.6 Decisiones funcionales confirmadas por el usuario
+
+- Las listas de compras de la cuenta PRO son compartidas entre sus miembros autorizados.
+- La información económica requiere permisos independientes; la membresía por sí sola no concede acceso económico.
+
+Estas dos reglas ya no son propuestas. La matriz concreta de roles y el mecanismo técnico para asignar/verificar permisos económicos siguen pendientes.
