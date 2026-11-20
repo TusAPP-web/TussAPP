@@ -18,3 +18,10 @@
 - PRO: admite múltiples usuarios autorizados dentro de una misma cuenta ComprAPP.
 - Las listas y preferencias pertenecen a la cuenta del usuario en la nube para conservarse entre dispositivos; IndexedDB funciona como almacenamiento local/offline y no como único lugar de persistencia.
 - La app mantiene listas habituales/productos favoritos como parte de la experiencia; las sugerencias inteligentes basadas en historial son una función PRO y requieren confirmación antes de agregarse.
+
+
+## Cuentas PRO — permisos compartidos confirmados
+
+- Las listas de compras de una cuenta PRO serán compartidas entre los miembros autorizados de esa cuenta.
+- El acceso a la información económica tendrá permisos independientes. Ser miembro de una cuenta PRO no concede automáticamente acceso a ingresos, gastos ni presupuestos.
+- Esta decisión define el comportamiento funcional general; la matriz detallada de roles (owner/admin/member/viewer), las facultades de administración y los permisos económicos granulares continúan sujetos a cierre.
