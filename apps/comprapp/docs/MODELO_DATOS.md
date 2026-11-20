@@ -174,8 +174,6 @@ Cabecera de lista:
 La lista no guarda como verdad un precio permanente. Puede mostrar una cotización consultada, identificada con su fecha y comercio, sin confundirla con el precio vigente.
 
 ### comprappAccounts/{accountId}/favorites/{favoriteId}
-- variantId
-- createdAt
 - targetType (product o variant, para permitir favoritos de producto general o variante específica)
 - targetId
 - createdAt
