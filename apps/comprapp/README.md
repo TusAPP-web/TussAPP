@@ -12,3 +12,7 @@ La base de navegación modular está creada. Las pantallas de catálogo, comerci
 - service-worker.js: caché de recursos estáticos de ComprAPP.
 
 No hay Firebase configurado. No se comparten archivos internos con otras aplicaciones. app.js coordina; no debe contener lógica de negocio de los módulos. styles.css agrega imports y no debe acumular estilos.
+
+## Vista previa Firebase Hosting
+
+Se agregó `firebase.json` dentro de esta carpeta para publicar estáticamente ComprAPP sin desplegar documentación interna. La configuración todavía no está vinculada a un proyecto Firebase ni desplegada. Para publicar, ingresar a esta carpeta, autenticarse con Firebase CLI y seleccionar el proyecto exclusivo de ComprAPP. No se configura Firestore ni autenticación en esta etapa.
