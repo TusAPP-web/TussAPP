@@ -46,3 +46,12 @@ Pendiente de resolver:
 - Cerrar facultades de invitación/deshabilitación del admin.
 - Definir cierre de cuenta y recuperación.
 - Definir por separado los roles de personal comercial.
+
+
+## Vista previa Firebase Hosting
+
+- [CONFIGURACIÓN AGREGADA, NO DESPLEGADA] Existe `apps/comprapp/firebase.json` con Hosting estático aislado en la carpeta de ComprAPP y exclusión de `docs/` y archivos internos.
+- [PENDIENTE] Crear o identificar el proyecto Firebase exclusivo de ComprAPP.
+- [PENDIENTE] Vincular el proyecto mediante Firebase CLI, desplegar Hosting y comprobar la URL pública.
+- La vista previa no requiere ni configura Authentication, Firestore, Storage o Cloud Functions.
+- No modificar configuración raíz de TusAPP ni otras aplicaciones.
