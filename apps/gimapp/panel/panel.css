@@ -7,3 +7,25 @@
 .catalog-hero .help-asterisk{color:#fff}
 
 .schedule-editor-row{display:grid;grid-template-columns:1fr 110px 110px 1.2fr 1.2fr 80px auto;gap:9px;align-items:end;padding:12px 0;border-bottom:1px solid var(--line)}.schedule-editor-row .field{margin:0}.schedule-editor-row .button{margin-bottom:12px}@media(max-width:900px){.schedule-editor-row{grid-template-columns:repeat(2,minmax(0,1fr))}.schedule-editor-row .button{margin:0 0 12px}}
+
+/* Acceso visible a beneficios bloqueados por plan. */
+.nav-item.locked::after{content:'🔒';margin-left:auto;font-size:10px;opacity:.7}
+.locked-feature{display:grid;justify-items:start;gap:12px;max-width:680px;padding:26px}
+.locked-feature-icon{width:42px;height:42px;display:grid;place-items:center;border-radius:12px;background:#fff4df;font-size:19px}
+.locked-feature h2{margin:0}
+.locked-feature p{max-width:560px;line-height:1.6;margin:0}
+@media(max-width:650px){.nav-item.locked::after{content:'🔒';font-size:8px;margin-left:0;position:absolute;right:2px;top:3px}.nav-item{position:relative}}
+
+
+/* Gestión de equipo: invitaciones, permisos y horarios asignados. */
+.team-check-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;margin:10px 0 18px}
+.team-check{display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid var(--line,#e5e7eb);border-radius:10px;background:var(--surface,#fff);font-size:.9rem}
+.team-check input{width:17px;height:17px;accent-color:var(--primary,#3157d5);flex:0 0 auto}
+.team-check.disabled{opacity:.55}
+.team-member{margin-top:12px}
+.team-member h3{margin:0 0 4px}
+.team-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.team-invitation-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line,#e5e7eb)}
+.team-invitation-row:last-child{border-bottom:0}
+.team-invitation-row p{margin:4px 0 0}
+@media(max-width:640px){.team-invitation-row{align-items:flex-start;flex-direction:column}.team-actions .button{flex:1}}

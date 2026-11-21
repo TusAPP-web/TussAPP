@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="GimAPP, gestión clara de turnos y clientes para gimnasios.">
-  <title>GimAPP | Acceso</title><link rel="icon" href="panel/icons/GimAPP_replica.ico"><link rel="apple-touch-icon" href="panel/icons/GimAPP_replica_192.png"><link rel="stylesheet" href="panel/panel.css">
+  <title>GimAPP | Acceso</title><link rel="icon" href="panel/icons/GimAPP_replica.ico"><link rel="apple-touch-icon" href="panel/icons/GimAPP_replica_192.png"><link rel="stylesheet" href="panel/panel.css?v=20261115-team-5">
 </head>
 <body class="login-page">
   <main class="login-card">
@@ -18,6 +18,18 @@
       <button class="text-link" type="button" id="password-reset">Olvidé mi contraseña</button><br>
       <button class="text-link" type="button" id="show-owner-registration">Crear cuenta para mi gimnasio →</button>
     </section>
+    <section id="invitation-view" hidden>
+      <p class="muted" id="invitation-description">Te invitaron a formar parte del equipo de un gimnasio.</p>
+      <form id="invitation-login-form">
+        <label>Correo electrónico<input id="invitation-email" type="email" autocomplete="email" required placeholder="tu@correo.com"></label>
+        <label>Contraseña<input id="invitation-password" type="password" autocomplete="current-password" required minlength="8" placeholder="Tu contraseña"></label>
+        <button class="button primary full" type="submit">Ingresar y aceptar invitación</button>
+      </form>
+      <button class="button full" type="button" id="invitation-register">Crear cuenta y recibir verificación</button>
+      <button class="button full" type="button" id="invitation-google">Continuar con Google</button>
+      <button class="button full" type="button" id="invitation-resend-verification" hidden>Reenviar correo de verificación</button>
+      <button class="button full" type="button" id="invitation-verified" hidden>Ya verifiqué mi correo: aceptar invitación</button>
+    </section>
     <section id="owner-registration-view" hidden>
       <form id="owner-registration-form"><label>Nombre del gimnasio<input name="gymName" required minlength="2" autocomplete="organization" placeholder="Nombre comercial"></label>
         <label>Nombre de la persona responsable<input name="name" required minlength="2" autocomplete="name" placeholder="Nombre y apellido"></label>
@@ -28,5 +40,5 @@
       <button class="text-link" type="button" id="show-login">Ya tengo una cuenta →</button>
     </section>
     <p id="login-message" class="form-message" aria-live="polite"></p>
-  </main><script type="module" src="panel/login.js"></script>
+  </main><script type="module" src="panel/login.js?v=20261115-team-5"></script>
 </body></html>

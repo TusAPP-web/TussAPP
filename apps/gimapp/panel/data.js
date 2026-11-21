@@ -13,18 +13,15 @@ import {
   setDoc,
   updateDoc,
   where,
-  writeBatch,
 } from 'https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js';
 import { getFirebaseServices } from '../firebase.js';
+import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/13.1.0/firebase-functions.js';
 
 function cleanText(value) { return String(value || '').trim().replace(/\s+/g, ' '); }
 function gymDoc(db, gymId) { return doc(db, 'gyms', gymId); }
 
 export async function getGymProfile(gymId) {
-  const { db } = await getFirebaseServices();
-  const snapshot = await getDoc(gymDoc(db, gymId));
-  if (!snapshot.exists()) throw new Error('No se encontró el gimnasio de esta cuenta.');
-  return { id: snapshot.id, ...snapshot.data() };
+  return (await getGymWorkspace(gymId)).gym;
 }
 
 export async function getPendingRequests(gymId) {
@@ -38,10 +35,23 @@ export async function getPendingRequests(gymId) {
     .sort((a, b) => (a.createdAt?.toMillis?.() || 0) - (b.createdAt?.toMillis?.() || 0));
 }
 
-export async function getClients(gymId) {
+export async function getClients(gymId, assignedTurnIds = null) {
   const { db } = await getFirebaseServices();
-  const snapshot = await getDocs(query(collection(db, 'gyms', gymId, 'clients'), orderBy('lastName', 'asc'), limit(500)));
-  return snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+  const clientsRef = collection(db, 'gyms', gymId, 'clients');
+  if (!Array.isArray(assignedTurnIds)) {
+    const snapshot = await getDocs(query(clientsRef, orderBy('lastName', 'asc'), limit(500)));
+    return snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+  }
+  const ids = [...new Set(assignedTurnIds.filter(id => typeof id === 'string' && id))];
+  if (!ids.length) return [];
+  const chunks = [];
+  for (let index = 0; index < ids.length; index += 30) chunks.push(ids.slice(index, index + 30));
+  const snapshots = await Promise.all(chunks.map(group =>
+    getDocs(query(clientsRef, where('assignedTurnIds', 'array-contains-any', group), limit(500)))
+  ));
+  const unique = new Map();
+  snapshots.forEach(snapshot => snapshot.docs.forEach(item => unique.set(item.id, { id: item.id, ...item.data() })));
+  return [...unique.values()].sort((a, b) => String(a.lastName || '').localeCompare(String(b.lastName || ''), 'es'));
 }
 
 export async function getCashEntries(gymId) {
@@ -51,18 +61,7 @@ export async function getCashEntries(gymId) {
 }
 
 export async function getCatalogConfiguration(gymId) {
-  const { db } = await getFirebaseServices();
-  const [gymSnapshot, catalogSnapshot] = await Promise.all([
-    getDoc(gymDoc(db, gymId)),
-    getDoc(doc(db, 'publicCatalog', gymId)),
-  ]);
-  const catalog = catalogSnapshot.exists() ? catalogSnapshot.data() : { gymName: '', turns: [], published: false };
-  const gym = gymSnapshot.exists() ? gymSnapshot.data() : {};
-  return {
-    ...catalog,
-    turns: Array.isArray(gym.scheduleTurns) ? gym.scheduleTurns : (Array.isArray(catalog.turns) ? catalog.turns : []),
-    allowScheduleOverlaps: gym.allowScheduleOverlaps === true,
-  };
+  return (await getGymWorkspace(gymId)).catalog;
 }
 
 export async function saveGymSchedule({ gymId, turns, allowScheduleOverlaps, gymName, published }) {
@@ -96,32 +95,11 @@ export async function updateGymProfile(gymId, values) {
   await updateDoc(gymDoc(db, gymId), { ...values, updatedAt: serverTimestamp() });
 }
 
-export async function approveRequest({ gymId, requestId, actorUid, assignedTurnIds = [] }) {
-  const { db } = await getFirebaseServices();
-  const requestRef = doc(db, 'gyms', gymId, 'requests', requestId);
-  const requestSnapshot = await getDoc(requestRef);
-  if (!requestSnapshot.exists()) throw new Error('La solicitud ya no existe.');
-  const request = requestSnapshot.data();
-  if (request.status !== 'pending') throw new Error('La solicitud ya fue atendida.');
-  const clientRef = doc(db, 'gyms', gymId, 'clients', request.clientUid);
-  const displayId = `CL-${request.clientUid.slice(0, 8).toUpperCase()}`;
-  const batch = writeBatch(db);
-  batch.set(clientRef, {
-    clientUid: request.clientUid,
-    displayId,
-    firstName: request.firstName,
-    lastName: request.lastName,
-    phone: request.phone,
-    email: request.email || null,
-    assignedTurnIds: Array.isArray(assignedTurnIds) && assignedTurnIds.length ? assignedTurnIds : request.requestedTurnIds,
-    status: 'active',
-    joinedAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  }, { merge: true });
-  batch.update(requestRef, { status: 'approved', clientId: displayId, reviewedBy: actorUid, reviewedAt: serverTimestamp(), updatedAt: serverTimestamp() });
-  batch.set(doc(db, 'gyms', gymId, 'audit', `request-approved-${requestId}`), { type: 'request-approved', requestId, clientUid: request.clientUid, actorUid, createdAt: serverTimestamp() });
-  await batch.commit();
-  return { clientId: displayId };
+export async function approveRequest({ gymId, requestId, assignedTurnIds = [] }) {
+  const { app } = await getFirebaseServices();
+  const approve = httpsCallable(getFunctions(app, 'southamerica-east1'), 'approveClientRequest');
+  const result = await approve({ gymId, requestId, assignedTurnIds });
+  return result.data;
 }
 
 export async function rejectRequest({ gymId, requestId, actorUid, message = '' }) {
@@ -154,4 +132,53 @@ export async function savePublicCatalog({ gymId, gymName, turns, published }) {
     waitlist: Boolean(turn.waitlist),
   }));
   await setDoc(doc(db, 'publicCatalog', gymId), { gymName: cleanText(gymName), turns: publicTurns, published: Boolean(published), updatedAt: serverTimestamp() }, { merge: true });
+}
+
+
+export async function getPlanRequests(gymId) {
+  const { db } = await getFirebaseServices();
+  const snapshot = await getDocs(query(
+    collection(db, 'gyms', gymId, 'planRequests'),
+    orderBy('createdAt', 'desc'),
+    limit(10),
+  ));
+  return snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+}
+
+export async function requestPlanChange({ gymId, requestedPlan }) {
+  if (!['pro', 'gold'].includes(requestedPlan)) {
+    throw new Error('Seleccioná un plan válido.');
+  }
+  const { app } = await getFirebaseServices();
+  const submit = httpsCallable(getFunctions(app, 'southamerica-east1'), 'requestPlanChange');
+  const result = await submit({ gymId, requestedPlan });
+  return result.data;
+}
+
+
+async function callTeamFunction(name, data) {
+  const { app } = await getFirebaseServices();
+  const callable = httpsCallable(getFunctions(app, 'southamerica-east1'), name);
+  const result = await callable(data);
+  return result.data;
+}
+
+export async function listTeam(gymId) {
+  return callTeamFunction('listTeam', { gymId });
+}
+export async function createTeamInvitation(values) {
+  return callTeamFunction('createTeamInvitation', values);
+}
+export async function updateTeamMember(values) {
+  return callTeamFunction('updateTeamMember', values);
+}
+export async function revokeTeamInvitation(values) {
+  return callTeamFunction('revokeTeamInvitation', values);
+}
+export async function deactivateTeamMember(values) {
+  return callTeamFunction('deactivateTeamMember', values);
+}
+
+export async function getGymWorkspace(gymId) {
+  return callTeamFunction('getGymWorkspace', { gymId });
 }

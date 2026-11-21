@@ -1,9 +1,13 @@
 // GimAPP · versión 0.4 · 3 de noviembre de 2026.
 import { APP_CONFIG } from '../config.js';
-import { registerGymOwner, registerGymOwnerWithGoogle, requestPasswordReset, signInGymStaff, signInGymStaffWithGoogle } from '../auth.js';
+import { acceptTeamInvitation, getStaffMembership, registerForTeamInvitation, resendTeamInvitationVerification, registerGymOwner, registerGymOwnerWithGoogle, requestPasswordReset, signInForTeamInvitation, signInForTeamInvitationWithGoogle, signInGymStaff, signInGymStaffWithGoogle } from '../auth.js?v=20261115-team-5';
 
 const loginView = document.querySelector('#login-view');
 const ownerRegistrationView = document.querySelector('#owner-registration-view');
+const invitationView = document.querySelector('#invitation-view');
+const invitationParams = new URLSearchParams(window.location.search);
+const invitation = { gymId: invitationParams.get('gym'), invitationId: invitationParams.get('invite') };
+const isTeamInvitation = Boolean(invitation.gymId && invitation.invitationId);
 const loginForm = document.querySelector('#login-form');
 const ownerForm = document.querySelector('#owner-registration-form');
 const message = document.querySelector('#login-message');
@@ -78,3 +82,83 @@ document.querySelector('#register-google').addEventListener('click', async () =>
 });
 document.querySelector('#show-owner-registration').addEventListener('click', () => setView('register'));
 document.querySelector('#show-login').addEventListener('click', () => setView('login'));
+
+
+if (isTeamInvitation) {
+  loginView.hidden = true;
+  ownerRegistrationView.hidden = true;
+  invitationView.hidden = false;
+  document.querySelector('#invitation-description').textContent =
+    'Recibiste una invitación para trabajar en un gimnasio. Ingresá o creá una cuenta con el mismo correo al que fue enviada.';
+  const invitationEmail = document.querySelector('#invitation-email');
+  const invitationPassword = document.querySelector('#invitation-password');
+  const invitationMessage = text => showMessage(text);
+  async function finishInvitation(user) {
+    invitationMessage('Verificando invitación…');
+    try {
+      await acceptTeamInvitation(invitation);
+      const membership = await getStaffMembership(user.uid);
+      openPanel(membership);
+    } catch (error) {
+      console.error('[GimAPP] No se pudo aceptar la invitación:', error);
+      if (error?.code === 'functions/failed-precondition' && String(error.message || '').toLowerCase().includes('verific')) {
+        document.querySelector('#invitation-resend-verification').hidden = false;
+        document.querySelector('#invitation-verified').hidden = false;
+      }
+      invitationMessage(userMessage(error));
+    }
+  }
+  document.querySelector('#invitation-login-form').addEventListener('submit', async event => {
+    event.preventDefault();
+    invitationMessage('Ingresando…');
+    try {
+      const user = await signInForTeamInvitation({
+        email: invitationEmail.value,
+        password: invitationPassword.value,
+      });
+      await finishInvitation(user);
+    } catch (error) {
+      console.error('[GimAPP] Falló el acceso para invitación:', error);
+      invitationMessage(userMessage(error));
+    }
+  });
+  document.querySelector('#invitation-register').addEventListener('click', async () => {
+    invitationMessage('Creando cuenta y enviando verificación…');
+    try {
+      await registerForTeamInvitation({
+        email: invitationEmail.value,
+        password: invitationPassword.value,
+      });
+      document.querySelector('#invitation-verified').hidden = false;
+      document.querySelector('#invitation-resend-verification').hidden = false;
+      invitationMessage('Te enviamos un correo para verificar tu dirección. Abrilo y después volvé acá para aceptar la invitación.');
+    } catch (error) {
+      console.error('[GimAPP] No se pudo crear la cuenta:', error);
+      invitationMessage(userMessage(error));
+    }
+  });
+  document.querySelector('#invitation-resend-verification').addEventListener('click', async () => {
+    try {
+      await resendTeamInvitationVerification();
+      invitationMessage('Te enviamos otro correo de verificación.');
+    } catch (error) {
+      invitationMessage(userMessage(error));
+    }
+  });
+  document.querySelector('#invitation-verified').addEventListener('click', async () => {
+    const { getFirebaseServices } = await import('../firebase.js');
+    const { auth } = await getFirebaseServices();
+    if (auth.currentUser) await finishInvitation(auth.currentUser);
+    else invitationMessage('La sesión venció. Ingresá con tu correo y contraseña para continuar.');
+  });
+  document.querySelector('#invitation-google').addEventListener('click', async () => {
+    invitationMessage('Abriendo Google…');
+    try {
+      const user = await signInForTeamInvitationWithGoogle();
+      await finishInvitation(user);
+    } catch (error) {
+      console.error('[GimAPP] Falló el acceso con Google:', error);
+      invitationMessage(userMessage(error));
+    }
+  });
+}

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Administración privada de GimAPP por TusAPP.">
+  <title>TusAPP | Administración de GimAPP</title>
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="header">
+      <div><span class="eyebrow">TUSAPP · ADMINISTRACIÓN CENTRAL</span><h1>Solicitudes de planes</h1></div>
+      <button id="sign-out" class="button secondary" hidden>Cerrar sesión</button>
+    </header>
+    <section id="login-view" class="card">
+      <h2>Acceso de administración</h2>
+      <p>Ingresá con la cuenta autorizada de TusAPP.</p>
+      <form id="login-form">
+        <label>Correo electrónico<input name="email" type="email" autocomplete="username" required></label>
+        <label>Contraseña<input name="password" type="password" autocomplete="current-password" required></label>
+        <button class="button primary" type="submit">Ingresar</button>
+      </form>
+      <button id="google-login" class="button secondary">Continuar con Google</button>
+      <p id="login-message" class="message" aria-live="polite"></p>
+    </section>
+    <section id="admin-view" hidden>
+      <div class="toolbar"><p id="admin-identity" class="muted"></p><button id="refresh" class="button secondary">Actualizar</button></div>
+      <div id="admin-message" class="message" aria-live="polite"></div>
+      <section class="manual-grant card">
+        <h2>Habilitación manual gratuita</h2>
+        <p>Para pruebas, demostraciones o cortesías. No genera un pago ni una suscripción.</p>
+        <form id="manual-grant-form">
+          <label>ID del gimnasio<input name="gymId" required maxlength="128" placeholder="Identificador exacto del gimnasio"></label>
+          <label>Plan a habilitar<select name="plan" required><option value="pro">Pro</option><option value="gold">Gold</option></select></label>
+          <label>Duración<select name="duration"><option value="30">30 días</option><option value="60">60 días</option><option value="90" selected>90 días</option><option value="180">180 días</option><option value="permanent">Permanente</option></select></label>
+          <label>Motivo<textarea name="reason" required maxlength="500" rows="2" placeholder="Ej. Prueba piloto / gimnasio colaborador"></textarea></label>
+          <button class="button primary" type="submit">Habilitar plan gratuitamente</button>
+        </form>
+      </section>
+      <section class="manual-grant card">
+        <h2>Modificar vencimiento de una habilitación manual</h2>
+        <p>Permite cambiar la fecha de una habilitación Pro o Gold ya concedida manualmente. Dejá la fecha vacía para que quede indefinida.</p>
+        <form id="manual-expiry-form">
+          <label>ID del gimnasio<input name="gymId" required maxlength="128" placeholder="Identificador exacto del gimnasio"></label>
+          <label>Nuevo vencimiento<input name="expiresAt" type="datetime-local"></label>
+          <label class="wide-field">Motivo del cambio<textarea name="reason" required maxlength="500" rows="2" placeholder="Ej. Se extiende el período de prueba"></textarea></label>
+          <button class="button primary" type="submit">Guardar nuevo vencimiento</button>
+        </form>
+      </section>
+      <h2 class="section-title">Solicitudes de migración pendientes</h2>
+      <div id="requests" class="request-list"><div class="empty">Cargando solicitudes…</div></div>
+    </section>
+  </main>
+  <script type="module" src="admin.js"></script>
+</body>
+</html>

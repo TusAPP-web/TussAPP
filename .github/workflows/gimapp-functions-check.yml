@@ -1,0 +1,85 @@
+name: GimAPP backend checks
+
+on:
+  push:
+    branches:
+      - feature/gimapp-privacidad-eliminacion
+    paths:
+      - 'apps/gimapp/functions/**'
+      - 'apps/gimapp/firebase.json'
+      - 'apps/gimapp/panel/**'
+      - 'apps/gimapp/admin/**'
+      - 'apps/gimapp/firestore.rules'
+      - '.github/workflows/gimapp-functions-check.yml'
+  pull_request:
+    paths:
+      - 'apps/gimapp/functions/**'
+      - 'apps/gimapp/firebase.json'
+      - 'apps/gimapp/panel/**'
+      - 'apps/gimapp/admin/**'
+      - 'apps/gimapp/firestore.rules'
+      - '.github/workflows/gimapp-functions-check.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/gimapp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Validate Firebase configuration
+        run: node -e "JSON.parse(require('fs').readFileSync('firebase.json', 'utf8'))"
+      - name: Install Functions dependencies
+        working-directory: apps/gimapp/functions
+        run: npm install --ignore-scripts
+      - name: Audit Functions dependencies (diagnostic only)
+        working-directory: apps/gimapp/functions
+        run: |
+          npm audit --json > npm-audit-report.json || true
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const report = JSON.parse(fs.readFileSync('npm-audit-report.json', 'utf8'));
+          const vulnerabilities = report.vulnerabilities || {};
+          console.log('=== NPM AUDIT SUMMARY ===');
+          console.log(JSON.stringify(report.metadata?.vulnerabilities || {}, null, 2));
+          for (const [name, item] of Object.entries(vulnerabilities)) {
+            console.log('\n=== ' + name + ' ===');
+            console.log('Severity: ' + item.severity);
+            console.log('Direct dependency: ' + item.isDirect);
+            console.log('Affected range: ' + item.range);
+            console.log('Installed nodes:');
+            for (const node of item.nodes || []) {
+              let version = 'unknown';
+              try {
+                version = JSON.parse(fs.readFileSync(path.join(process.cwd(), node, 'package.json'), 'utf8')).version;
+              } catch (_) {}
+              console.log('  - ' + node + ' @ ' + version);
+            }
+            console.log('Fix available: ' + JSON.stringify(item.fixAvailable));
+            console.log('Advisories:');
+            for (const advisory of item.via || []) {
+              if (typeof advisory === 'string') {
+                console.log('  - ' + advisory);
+              } else {
+                console.log('  - ' + JSON.stringify({
+                  title: advisory.title,
+                  severity: advisory.severity,
+                  range: advisory.range,
+                  url: advisory.url,
+                  cwe: advisory.cwe,
+                  cvss: advisory.cvss
+                }));
+              }
+            }
+          }
+          NODE
+      - name: Check Functions syntax
+        working-directory: apps/gimapp/functions
+        run: npm run lint
+      - name: Run Firebase Emulator integration tests
+        run: npx --yes firebase-tools@latest emulators:exec --project demo-gimapp --only auth,firestore,functions "npm --prefix functions run test:emulator"
